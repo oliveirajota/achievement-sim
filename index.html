@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Simulador de Conquistas</title>
-<meta name="description" content="Crie animações de conquista desbloqueada nos estilos Xbox, PlayStation e Steam, com som. Use no OBS ou exporte vídeo.">
+<meta name="description" content="Crie animações de conquista em sete estilos de jogos, com som. Use no OBS ou exporte vídeo.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
 <style>
 :root{--bg:#0d0e11;--panel:#15171c;--card:#1b1e24;--line:#272b33;--text:#e9ebef;--mute:#8d939d;--acc:#6c8cff;--ok:#3ecf7a}
@@ -19,6 +19,10 @@ aside{background:var(--panel);border-right:1px solid var(--line);padding:20px 18
 main{padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0;overflow:auto;max-height:100vh}
 main>*{flex-shrink:0}
 h1{font-size:18px;margin:0 0 4px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.topbar label{margin:0;font-size:12px}
+.topbar select{width:auto;min-width:145px;margin-left:6px}
+.topbar a{color:var(--acc);font-size:12px;white-space:nowrap}
 .sub{color:var(--mute);font-size:12.5px;margin:0 0 18px}
 fieldset{border:0;margin:0 0 18px;padding:0}
 legend{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:8px;font-weight:600}
@@ -70,6 +74,10 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
 
 <div id="app">
 <aside>
+  <div class="topbar">
+    <label for="language">Idioma / Language <select id="language"><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (US)</option></select></label>
+    <a href="https://github.com/oliveirajota/achievement-sim" target="_blank" rel="noopener noreferrer" id="github">GitHub ↗</a>
+  </div>
   <h1>🏆 Simulador de Conquistas</h1>
   <p class="sub">Escreva, escolha o estilo e dispare. Funciona no OBS e exporta vídeo.</p>
 
@@ -79,6 +87,10 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
       <button data-style="xbox"><span style="background:#107c10"></span>Xbox</button>
       <button data-style="ps"><span style="background:#2b3c8f"></span>PlayStation</button>
       <button data-style="steam"><span style="background:#1b2838;border:1px solid #66c0f4"></span>Steam</button>
+      <button data-style="blocks"><span style="background:#8eae68"></span>Aventura em Blocos</button>
+      <button data-style="badge"><span style="background:#ed6651"></span>Emblema</button>
+      <button data-style="arcade"><span style="background:#ff87c8"></span>Arcade Retrô</button>
+      <button data-style="mobile"><span style="background:#18b9a9"></span>Jogos Mobile</button>
     </div>
   </fieldset>
 
@@ -88,9 +100,17 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
     <input type="text" id="c_title" data-k="title" maxlength="120">
     <label for="c_head">Cabeçalho <small style="color:var(--mute)">(vazio = padrão do estilo)</small></label>
     <input type="text" id="c_head" data-k="head" maxlength="80">
-    <div data-only="xbox">
-      <label for="c_pts">Pontos (G) <small style="color:var(--mute)">— vazio para esconder</small></label>
+    <div data-only="xbox arcade">
+      <label for="c_pts" id="pointsLabel">Pontos (G) <small style="color:var(--mute)">— vazio para esconder</small></label>
       <input type="text" id="c_pts" data-k="pts" maxlength="6">
+    </div>
+    <div data-only="blocks">
+      <label for="c_blockType">Tipo de conquista</label>
+      <select id="c_blockType" data-k="blockType">
+        <option value="advancement">Avanço</option>
+        <option value="goal">Objetivo</option>
+        <option value="challenge">Desafio</option>
+      </select>
     </div>
     <div data-only="ps">
       <label for="c_tier">Troféu</label>
@@ -99,7 +119,7 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
         <option value="gold">Ouro</option><option value="platinum">Platina</option>
       </select>
     </div>
-    <div data-only="steam">
+    <div data-only="steam blocks mobile">
       <label for="c_desc">Descrição <small style="color:var(--mute)">(opcional)</small></label>
       <input type="text" id="c_desc" data-k="desc" maxlength="140">
     </div>
@@ -242,21 +262,44 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const OBS = params.has('obs');
+const DEFAULT_COPY = {
+  'pt-BR': {
+    title: 'Zerou sem morrer', desc: 'Termine o jogo sem perder nenhuma vida.',
+    header: {
+      xbox: 'Conquista desbloqueada', ps: 'Você ganhou um troféu', steam: 'Conquista desbloqueada!',
+      blocks: 'Avanço alcançado', badge: 'Novo emblema', arcade: 'Nova conquista', mobile: 'Conquista desbloqueada'
+    },
+    blockHeader: { advancement: 'Avanço alcançado', goal: 'Objetivo concluído', challenge: 'Desafio concluído' }
+  },
+  'en-US': {
+    title: 'Finished without dying', desc: 'Finish the game without losing a life.',
+    header: {
+      xbox: 'Achievement unlocked', ps: 'You earned a trophy', steam: 'Achievement unlocked!',
+      blocks: 'Advancement made', badge: 'New badge', arcade: 'Achievement unlocked', mobile: 'Achievement unlocked'
+    },
+    blockHeader: { advancement: 'Advancement made', goal: 'Goal reached', challenge: 'Challenge complete' }
+  }
+};
+let language = params.get('lang') === 'en-US' ? 'en-US' : 'pt-BR';
+if (!OBS && !params.has('lang')) {
+  try { if (localStorage.getItem('achv-lang') === 'en-US') language = 'en-US'; } catch {}
+}
 
 const FONT = '"Segoe UI","Segoe UI Variable",Inter,"Helvetica Neue",Arial,sans-serif';
-const DEFAULT_HEADER = { xbox: 'Conquista desbloqueada', ps: 'Você ganhou um troféu', steam: 'Conquista desbloqueada!' };
-const DEFAULT_DUR = { xbox: 6, ps: 5, steam: 5 };
-const AUTO_SOUND = { xbox: 'chime', ps: 'bell', steam: 'pluck' };
+const defaultHeader = () => DEFAULT_COPY[language].header;
+const achievementHeader = () => cfg.st === 'blocks' ? DEFAULT_COPY[language].blockHeader[cfg.blockType] : defaultHeader()[cfg.st];
+const DEFAULT_DUR = { xbox: 6, ps: 5, steam: 5, blocks: 5, badge: 5, arcade: 5, mobile: 5 };
+const AUTO_SOUND = { xbox: 'chime', ps: 'bell', steam: 'pluck', blocks: 'blocks', badge: 'badge', arcade: 'arcade', mobile: 'mobile' };
 const RES = { '1080': [1920, 1080], '720': [1280, 720], '1440': [2560, 1440], vert: [1080, 1920], square: [1080, 1080] };
 const TIERS = { bronze: ['#e3a06a', '#8a4f22'], silver: ['#f0f3f6', '#8d96a0'], gold: ['#ffdf6e', '#a87a14'], platinum: ['#eaf6ff', '#7fa5c4'] };
 const POS = { center: ['c', 'c'], tc: ['t', 'c'], bc: ['b', 'c'], tr: ['t', 'r'], br: ['b', 'r'], tl: ['t', 'l'], bl: ['b', 'l'] };
 const NUM = ['vol', 'dur', 'scale', 'delay', 'repeat'];
 const DEFAULTS = {
   st: 'xbox', title: 'Zerou sem morrer', head: '', pts: '100', desc: 'Termine o jogo sem perder nenhuma vida.',
-  tier: 'gold', snd: 'auto', sndfile: '', icon: '', vol: 0.8, dur: 6, pos: 'default', scale: 1,
+  tier: 'gold', blockType: 'advancement', snd: 'auto', sndfile: '', icon: '', vol: 0.8, dur: 6, pos: 'default', scale: 1,
   bg: 'transparent', bgc: '#000000', res: '1080', accent: '#107c10', delay: 0.5, repeat: 0, fmt: 'mp4', area: 'crop'
 };
-const OBS_KEYS = ['st','title','head','pts','desc','tier','snd','sndfile','icon','vol','dur','pos','scale','bg','bgc','res','accent','delay','repeat'];
+const OBS_KEYS = ['st','title','head','pts','desc','tier','blockType','snd','sndfile','icon','vol','dur','pos','scale','bg','bgc','res','accent','delay','repeat'];
 
 let cfg = { ...DEFAULTS };
 if (OBS) {
@@ -266,9 +309,123 @@ if (OBS) {
   if (!cfg.v2) { cfg.area = 'crop'; cfg.v2 = 1; }
 }
 for (const k of NUM) { cfg[k] = parseFloat(cfg[k]); if (!isFinite(cfg[k])) cfg[k] = DEFAULTS[k]; }
-if (!DEFAULT_HEADER[cfg.st]) cfg.st = 'xbox';
+if (!Object.hasOwn(defaultHeader(), cfg.st)) cfg.st = 'xbox';
+if (!Object.hasOwn(DEFAULT_COPY[language].blockHeader, cfg.blockType)) cfg.blockType = 'advancement';
+if (language === 'en-US') {
+  if (cfg.title === DEFAULT_COPY['pt-BR'].title) cfg.title = DEFAULT_COPY['en-US'].title;
+  if (cfg.desc === DEFAULT_COPY['pt-BR'].desc) cfg.desc = DEFAULT_COPY['en-US'].desc;
+}
 
 const save = () => { if (!OBS) try { localStorage.setItem('achv-cfg', JSON.stringify(cfg)); } catch {} };
+const tr = (pt, en) => language === 'en-US' ? en : pt;
+const EN_TEXT = [
+  ['aside > h1', '🏆 Achievement Simulator'],
+  ['aside > p.sub', 'Write your text, choose a style, and trigger it. Works in OBS and exports video.'],
+  ['aside fieldset:nth-of-type(1) legend', 'Style'],
+  ['button[data-style="blocks"]', '<span style="background:#8eae68"></span>Block Adventure'],
+  ['button[data-style="badge"]', '<span style="background:#ed6651"></span>Badge'],
+  ['button[data-style="arcade"]', '<span style="background:#ff87c8"></span>Retro Arcade'],
+  ['button[data-style="mobile"]', '<span style="background:#18b9a9"></span>Mobile Games'],
+  ['aside fieldset:nth-of-type(2) legend', 'Text'],
+  ['label[for="c_title"]', 'Achievement name'],
+  ['label[for="c_head"]', 'Header <small style="color:var(--mute)">(empty = style default)</small>'],
+  ['label[for="c_pts"]', 'Points (G) <small style="color:var(--mute)">— leave empty to hide</small>'],
+  ['label[for="c_blockType"]', 'Achievement type'],
+  ['#c_blockType option[value="advancement"]', 'Advancement'],
+  ['#c_blockType option[value="goal"]', 'Goal'],
+  ['#c_blockType option[value="challenge"]', 'Challenge'],
+  ['label[for="c_tier"]', 'Trophy'],
+  ['#c_tier option[value="bronze"]', 'Bronze'],
+  ['#c_tier option[value="silver"]', 'Silver'],
+  ['#c_tier option[value="gold"]', 'Gold'],
+  ['#c_tier option[value="platinum"]', 'Platinum'],
+  ['label[for="c_desc"]', 'Description <small style="color:var(--mute)">(optional)</small>'],
+  ['aside fieldset:nth-of-type(3) legend', 'Icon'],
+  ['#iconClear', 'Remove'],
+  ['label[for="c_icon"]', 'Icon filename (for OBS)'],
+  ['label[for="c_accent"]', 'Circle color'],
+  ['aside fieldset:nth-of-type(4) legend', 'Sound'],
+  ['#c_snd option[value="auto"]', 'Automatic (matches style)'],
+  ['#c_snd option[value="chime"]', 'Chime (Xbox style)'],
+  ['#c_snd option[value="bell"]', 'Bell (PlayStation style)'],
+  ['#c_snd option[value="pluck"]', 'Pluck (Steam style)'],
+  ['#c_snd option[value="retro"]', 'Retro 8-bit'],
+  ['#c_snd option[value="custom"]', 'My audio file'],
+  ['#c_snd option[value="none"]', 'No sound'],
+  ['#testSnd', '▶ Listen'],
+  ['#customSnd label:first-of-type', 'Audio file (mp3/wav/ogg)'],
+  ['label[for="c_sndfile"]', 'Audio filename (for OBS)'],
+  ['aside fieldset:nth-of-type(4) p.hint', 'Built-in sounds are synthesized and inspired by the originals. Upload your own file to use an official sound.'],
+  ['aside fieldset:nth-of-type(5) legend', 'Timing and position'],
+  ['label[for="c_dur"]', 'Time on screen <span class="val" id="v_dur"></span>'],
+  ['label[for="c_pos"]', 'Position'],
+  ['#c_pos option[value="default"]', 'Platform default'],
+  ['#c_pos option[value="center"]', 'Center'],
+  ['#c_pos option[value="tc"]', 'Top center'],
+  ['#c_pos option[value="bc"]', 'Bottom center'],
+  ['#c_pos option[value="tr"]', 'Top right'],
+  ['#c_pos option[value="br"]', 'Bottom right'],
+  ['#c_pos option[value="tl"]', 'Top left'],
+  ['#c_pos option[value="bl"]', 'Bottom left'],
+  ['label[for="c_scale"]', 'Scale <span class="val" id="v_scale"></span>'],
+  ['label[for="c_res"]', 'Resolution'],
+  ['#c_res option[value="vert"]', '1080 × 1920 (vertical — Reels/TikTok/Shorts)'],
+  ['#c_res option[value="square"]', '1080 × 1080 (square)'],
+  ['aside fieldset:nth-of-type(6) legend', 'Background'],
+  ['aside fieldset:nth-of-type(7) legend', 'OBS mode only'],
+  ['label[for="c_delay"]', 'Delay on open (s)'],
+  ['label[for="c_repeat"]', 'Repeat every (s)'],
+  ['aside fieldset:nth-of-type(7) p.hint', 'Set repeat to 0 to turn it off.'],
+  ['aside > p.hint', 'Independent and unofficial project, unaffiliated with Microsoft, Sony, or Valve. Sounds are synthesized. Everything runs in your browser: nothing is sent to the server.'],
+  ['#badge', 'static preview — click to animate'],
+  ['#play', '▶ Trigger <small style="opacity:.7">(space)</small>'],
+  ['#rec', '⏺ Record video'],
+  ['#c_area option[value="crop"]', 'Achievement only (crop)'],
+  ['#c_area option[value="full"]', 'Full screen'],
+  ['#copyObs', '🔗 Copy OBS link'],
+  ['main details:nth-of-type(1) summary', 'How to use in OBS'],
+  ['main details:nth-of-type(1) li:nth-child(1)', 'In OBS, go to <b>Sources → + → Browser</b>. Turn off <b>Local file</b> and paste the link below into the <b>URL</b> field.'],
+  ['main details:nth-of-type(1) li:nth-child(2)', 'Set width and height to your chosen resolution (for example, <code>1920</code> × <code>1080</code>).'],
+  ['main details:nth-of-type(1) li:nth-child(3)', 'Enable <b>Control audio via OBS</b> (sound appears in the mixer) and <b>Shutdown source when not visible</b>.'],
+  ['main details:nth-of-type(1) li:nth-child(4)', '<b>To trigger:</b> show the source with the eye 👁 icon. The animation plays each time it appears. Tip: set a Show/Hide shortcut for this source in <b>Settings → Hotkeys</b>.'],
+  ['main details:nth-of-type(1) li:nth-child(5)', 'For custom icons or sounds, place the files <b>next to this index.html</b> and enter their names in the OBS filename fields.'],
+  ['main details:nth-of-type(1) p.hint', '<a id="obsOpen" href="#" target="_blank" style="color:var(--acc)">Open OBS mode in a new tab</a> to test it (click the page or press space to trigger).'],
+  ['main details:nth-of-type(2) summary', 'Export video for social media'],
+  ['main details:nth-of-type(2) li:nth-child(1)', 'Use Chrome or Edge and keep this tab visible while recording (it takes a few seconds).'],
+  ['main details:nth-of-type(2) li:nth-child(2)', 'For TikTok/Reels/Shorts/YouTube, use a <b>Black</b> or <b>Green (chroma)</b> background. These platforms do not support transparency. You can remove the green in an editor such as CapCut, Premiere, or DaVinci.'],
+  ['main details:nth-of-type(2) li:nth-child(3)', '<b>Transparent</b> works best in WebM and depends on the browser recording an alpha channel. If the result has a black background, use green instead.'],
+  ['main details:nth-of-type(2) li:nth-child(4)', 'MP4 is available only if your browser can record it. Otherwise, record WebM.'],
+  ['main details:nth-of-type(2) li:nth-child(5)', '<b>Achievement only (crop):</b> records the popup area (outlined in the preview) with room for its shadow and glow. Use it as a layer in CapCut/Premiere/DaVinci: record <b>transparent WebM</b> or green and position it as needed.']
+];
+const PT_TEXT = EN_TEXT.map(([selector]) => document.querySelector(selector).innerHTML);
+function translateUI() {
+  document.documentElement.lang = language;
+  document.title = tr('Simulador de Conquistas', 'Achievement Simulator');
+  document.querySelector('meta[name="description"]').content = tr(
+    'Crie animações de conquista em sete estilos de jogos, com som. Use no OBS ou exporte vídeo.',
+    'Create achievement animations in seven game styles with sound. Use them in OBS or export video.');
+  if (OBS) return;
+  EN_TEXT.forEach(([selector, english], index) => {
+    document.querySelector(selector).innerHTML = language === 'en-US' ? english : PT_TEXT[index];
+  });
+  const bgLabels = [
+    ['Transparente', 'Transparent'], ['Preto', 'Black'],
+    ['Verde (chroma)', 'Green (chroma)'], ['Cor ', 'Color ']
+  ];
+  document.querySelectorAll('aside fieldset:nth-of-type(6) .seg label').forEach((label, index) => {
+    const text = Array.from(label.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+    text.textContent = tr(...bgLabels[index]);
+  });
+  $('cv').title = tr('Clique para disparar', 'Click to trigger');
+  $('c_area').title = tr('Área exportada', 'Export area');
+  $('c_icon').placeholder = tr('ex.: icone.png', 'e.g. icon.png');
+  $('c_sndfile').placeholder = tr('ex.: som.mp3', 'e.g. sound.mp3');
+  $('github').setAttribute('aria-label', tr('Código-fonte no GitHub', 'Source code on GitHub'));
+  const mp4Option = $('c_fmt').querySelector('option[value="mp4"]');
+  mp4Option.textContent = mp4Option.disabled ? tr('MP4 (não suportado aqui)', 'MP4 (not supported here)') : 'MP4';
+  $('language').value = language;
+}
+translateUI();
 
 /* ---------------- canvas ---------------- */
 const canvas = $('cv');
@@ -353,7 +510,7 @@ function place(w, h, def, defMargin) {
 /* ---- Estilo Xbox: círculo que "estoura" e abre uma pílula ---- */
 function drawXbox(t, D) {
   const R = 48 * s, h = R * 2;
-  const header = cfg.head || DEFAULT_HEADER.xbox;
+  const header = cfg.head || defaultHeader().xbox;
   const pts = String(cfg.pts || '').trim();
   const title = (pts ? `${pts}G  ·  ` : '') + cfg.title;
   const maxT = Math.min(W * 0.86, 1150 * s) - h - 70 * s;
@@ -425,7 +582,7 @@ function drawXbox(t, D) {
 /* ---- Estilo PlayStation: cartão escuro no canto superior direito ---- */
 function drawPS(t, D) {
   const iconS = 72 * s, pad = 16 * s, h = iconS + pad * 2;
-  const header = cfg.head || DEFAULT_HEADER.ps;
+  const header = cfg.head || defaultHeader().ps;
   const maxT = Math.min(W * 0.86, 900 * s) - iconS - pad * 2 - 50 * s;
   font(400, 19); const hdr = fit(header, maxT); const hw = ctx.measureText(hdr).width;
   font(600, 24); const ttl = fit(cfg.title, maxT - 30 * s); const tw = ctx.measureText(ttl).width + 30 * s;
@@ -476,7 +633,7 @@ function drawPS(t, D) {
 /* ---- Estilo Steam: toast que sobe no canto inferior direito ---- */
 function drawSteam(t, D) {
   const iconS = 80 * s, pad = 14 * s, h = iconS + pad * 2;
-  const header = cfg.head || DEFAULT_HEADER.steam;
+  const header = cfg.head || defaultHeader().steam;
   const desc = String(cfg.desc || '').trim();
   const maxT = Math.min(W * 0.86, 820 * s) - iconS - pad * 2 - 40 * s;
   font(700, 21); const hdr = fit(header, maxT); const hw = ctx.measureText(hdr).width;
@@ -535,7 +692,282 @@ function drawSteam(t, D) {
   ctx.restore();
 }
 
-const DRAW = { xbox: drawXbox, ps: drawPS, steam: drawSteam };
+function drawBlock(t, D) {
+  const u = Math.min(s, (W - 96 * s) / 700);
+  const w = 660 * u, h = 124 * u;
+  const p = place(w, h, 'tr', 38 * u);
+  lastRect = { x: p.x, y: p.y, w, h };
+  if (MEASURE) return;
+
+  const colors = {
+    advancement: ['#8eae68', '#354b30'],
+    goal: ['#e6bf6e', '#685031'],
+    challenge: ['#d5a7e9', '#513c65']
+  };
+  const [accent, dark] = colors[cfg.blockType] || colors.advancement;
+  const entry = Math.floor(eOut(prog(t, 0, .42)) * 8) / 8;
+  const exit = 1 - eIn(prog(t, D - .35, D));
+  if (entry <= 0 || exit <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = exit;
+  ctx.translate(0, (entry - 1) * (h + 30 * u));
+  ctx.shadowColor = '#0009';
+  ctx.shadowBlur = 14 * u;
+  ctx.shadowOffsetY = 5 * u;
+  ctx.fillStyle = '#191e20';
+  ctx.fillRect(p.x, p.y, w, h);
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = dark;
+  ctx.fillRect(p.x, p.y, 7 * u, h);
+  ctx.fillStyle = accent;
+  ctx.fillRect(p.x + 7 * u, p.y, w - 7 * u, 4 * u);
+  ctx.strokeStyle = '#7d899144';
+  ctx.lineWidth = 2 * u;
+  ctx.strokeRect(p.x + u, p.y + u, w - 2 * u, h - 2 * u);
+
+  const ix = p.x + 19 * u, iy = p.y + 18 * u, iconSize = 88 * u;
+  ctx.fillStyle = '#0c1214';
+  ctx.fillRect(ix - 3 * u, iy - 3 * u, iconSize + 6 * u, iconSize + 6 * u);
+  ctx.fillStyle = accent;
+  ctx.fillRect(ix, iy, iconSize, iconSize);
+  if (iconImg) {
+    cover(iconImg, ix + 5 * u, iy + 5 * u, iconSize - 10 * u, iconSize - 10 * u);
+  } else {
+    const cell = 11 * u;
+    ctx.fillStyle = dark;
+    [[2, 1], [3, 1], [4, 1], [5, 1], [1, 2], [6, 2], [1, 3], [6, 3],
+      [2, 4], [5, 4], [3, 5], [4, 5], [3, 6], [4, 6]].forEach(([x, y]) => {
+      ctx.fillRect(ix + x * cell, iy + y * cell, cell, cell);
+    });
+    ctx.fillStyle = '#fff9';
+    ctx.fillRect(ix + 3 * cell, iy + 2 * cell, 2 * cell, cell);
+  }
+
+  const tx = ix + iconSize + 23 * u, max = p.x + w - 20 * u - tx;
+  ctx.fillStyle = accent;
+  ctx.font = `700 ${16 * u}px ui-monospace,Consolas,monospace`;
+  ctx.fillText(fit(cfg.head || achievementHeader(), max), tx, p.y + 40 * u);
+  ctx.fillStyle = '#f2f4ee';
+  ctx.font = `700 ${23 * u}px ui-monospace,Consolas,monospace`;
+  ctx.fillText(fit(cfg.title, max), tx, p.y + 72 * u);
+  if (cfg.desc) {
+    ctx.fillStyle = '#a9b5b1';
+    ctx.font = `400 ${14 * u}px ui-monospace,Consolas,monospace`;
+    ctx.fillText(fit(cfg.desc, max), tx, p.y + 98 * u);
+  }
+  ctx.restore();
+}
+
+function drawBadge(t, D) {
+  const u = Math.min(s, (W - 96 * s) / 640);
+  const w = 580 * u, h = 154 * u;
+  const p = place(w, h, 'tc', 40 * u);
+  lastRect = { x: p.x, y: p.y, w, h };
+  if (MEASURE) return;
+
+  const arrive = eBack(prog(t, 0, .52));
+  const leave = 1 - eIn(prog(t, D - .43, D));
+  if (arrive <= 0 || leave <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = leave;
+  ctx.translate(p.x + w / 2, p.y + h / 2);
+  ctx.scale(Math.max(.01, arrive), Math.max(.01, arrive));
+  ctx.translate(-p.x - w / 2, -p.y - h / 2);
+  ctx.shadowColor = '#09132b77';
+  ctx.shadowBlur = 30 * u;
+  ctx.shadowOffsetY = 8 * u;
+  ctx.fillStyle = '#fff8ec';
+  rr(p.x, p.y, w, h, 32 * u);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = '#ed6651';
+  rr(p.x, p.y, 150 * u, h, 32 * u);
+  ctx.fill();
+  ctx.fillRect(p.x + 60 * u, p.y, 90 * u, h);
+  ctx.fillStyle = '#ffbc68';
+  ctx.fillRect(p.x + 150 * u, p.y, 8 * u, h);
+
+  const cx = p.x + 79 * u, cy = p.y + 75 * u;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 54 * u, 0, 2 * Math.PI);
+  ctx.fillStyle = '#ffe3a2';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 43 * u, 0, 2 * Math.PI);
+  ctx.strokeStyle = '#c04740';
+  ctx.lineWidth = 4 * u;
+  ctx.stroke();
+  if (iconImg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 37 * u, 0, 2 * Math.PI);
+    ctx.clip();
+    cover(iconImg, cx - 37 * u, cy - 37 * u, 74 * u, 74 * u);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#5c7c9b';
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const angle = -Math.PI / 2 + i * Math.PI / 5;
+      const radius = (i % 2 ? 19 : 37) * u;
+      const x = cx + Math.cos(angle) * radius;
+      const y = cy + Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  const tx = p.x + 186 * u, max = p.x + w - 22 * u - tx;
+  ctx.fillStyle = '#bd5147';
+  ctx.font = `700 ${17 * u}px ${FONT}`;
+  ctx.fillText(fit(cfg.head || achievementHeader(), max), tx, p.y + 59 * u);
+  ctx.fillStyle = '#233b55';
+  ctx.font = `700 ${28 * u}px ${FONT}`;
+  ctx.fillText(fit(cfg.title, max), tx, p.y + 99 * u);
+  ctx.fillStyle = '#7b91ad';
+  ctx.fillRect(tx, p.y + 114 * u, Math.min(max, 170 * u), 5 * u);
+
+  const twinkle = Math.sin(t * 11) ** 2 * eOut(prog(t, .16, .55));
+  ctx.globalAlpha = leave * twinkle;
+  ctx.strokeStyle = '#ffe7a9';
+  ctx.lineWidth = 4 * u;
+  for (const [dx, dy] of [[-62, -41], [69, -48], [65, 44]]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + (dx - 10) * u, cy + dy * u);
+    ctx.lineTo(cx + (dx + 10) * u, cy + dy * u);
+    ctx.moveTo(cx + dx * u, cy + (dy - 10) * u);
+    ctx.lineTo(cx + dx * u, cy + (dy + 10) * u);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArcade(t, D) {
+  const u = Math.min(s, (W - 96 * s) / 720);
+  const w = 680 * u, h = 158 * u;
+  const p = place(w, h, 'bc', 50 * u);
+  lastRect = { x: p.x, y: p.y, w, h };
+  if (MEASURE) return;
+
+  const on = eOut(prog(t, 0, .25));
+  const off = 1 - eIn(prog(t, D - .3, D));
+  if (on <= 0 || off <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = on * off;
+  ctx.translate(0, (1 - on) * 40 * u);
+  ctx.shadowColor = '#f356b866';
+  ctx.shadowBlur = 26 * u;
+  ctx.fillStyle = '#24153c';
+  rr(p.x, p.y, w, h, 13 * u);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = '#ff87c8';
+  ctx.lineWidth = 4 * u;
+  rr(p.x + 2 * u, p.y + 2 * u, w - 4 * u, h - 4 * u, 11 * u);
+  ctx.stroke();
+  ctx.save();
+  rr(p.x + 6 * u, p.y + 6 * u, w - 12 * u, h - 12 * u, 9 * u);
+  ctx.clip();
+  ctx.fillStyle = '#ffffff0c';
+  for (let y = p.y + 8 * u; y < p.y + h; y += 7 * u) ctx.fillRect(p.x, y, w, 2 * u);
+  ctx.restore();
+
+  const ix = p.x + 24 * u, iy = p.y + 27 * u, size = 104 * u;
+  ctx.fillStyle = '#ffb858';
+  rr(ix, iy, size, size, 10 * u);
+  ctx.fill();
+  if (iconImg) {
+    ctx.save();
+    rr(ix + 6 * u, iy + 6 * u, size - 12 * u, size - 12 * u, 6 * u);
+    ctx.clip();
+    cover(iconImg, ix + 6 * u, iy + 6 * u, size - 12 * u, size - 12 * u);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#592d73';
+    ctx.fillRect(ix + 26 * u, iy + 53 * u, 52 * u, 12 * u);
+    ctx.fillRect(ix + 46 * u, iy + 33 * u, 12 * u, 52 * u);
+    ctx.fillStyle = '#fff3c7';
+    ctx.fillRect(ix + 21 * u, iy + 18 * u, 13 * u, 13 * u);
+    ctx.fillRect(ix + 69 * u, iy + 18 * u, 13 * u, 13 * u);
+  }
+  const tx = ix + size + 26 * u, max = p.x + w - 23 * u - tx;
+  ctx.fillStyle = '#ffcf77';
+  ctx.font = `700 ${17 * u}px ui-monospace,Consolas,monospace`;
+  ctx.fillText(fit(cfg.head || achievementHeader(), max), tx, p.y + 45 * u);
+  ctx.fillStyle = '#fff6fb';
+  ctx.font = `700 ${28 * u}px ui-monospace,Consolas,monospace`;
+  ctx.fillText(fit(cfg.title, max), tx, p.y + 87 * u);
+  if (String(cfg.pts || '').trim()) {
+    ctx.fillStyle = '#8ff2dd';
+    ctx.font = `700 ${21 * u}px ui-monospace,Consolas,monospace`;
+    ctx.fillText(fit(String(cfg.pts).trim(), max), tx, p.y + 124 * u);
+  }
+  ctx.restore();
+}
+
+function drawMobile(t, D) {
+  const u = Math.min(s, (W - 96 * s) / 590);
+  const w = 550 * u, h = 112 * u;
+  const p = place(w, h, 'tc', 34 * u);
+  lastRect = { x: p.x, y: p.y, w, h };
+  if (MEASURE) return;
+
+  const on = eOut(prog(t, 0, .4));
+  const off = 1 - eIn(prog(t, D - .35, D));
+  if (on <= 0 || off <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = on * off;
+  ctx.translate(0, (1 - on) * -25 * u);
+  ctx.shadowColor = '#123a4d66';
+  ctx.shadowBlur = 22 * u;
+  ctx.shadowOffsetY = 7 * u;
+  ctx.fillStyle = '#f4fcf9';
+  rr(p.x, p.y, w, h, 25 * u);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = '#b9eee1';
+  ctx.lineWidth = 2 * u;
+  ctx.stroke();
+
+  const ix = p.x + 18 * u, iy = p.y + 19 * u, size = 74 * u;
+  ctx.fillStyle = '#18b9a9';
+  rr(ix, iy, size, size, 20 * u);
+  ctx.fill();
+  if (iconImg) {
+    ctx.save();
+    rr(ix + 4 * u, iy + 4 * u, size - 8 * u, size - 8 * u, 16 * u);
+    ctx.clip();
+    cover(iconImg, ix + 4 * u, iy + 4 * u, size - 8 * u, size - 8 * u);
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 7 * u;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ix + 19 * u, iy + 38 * u);
+    ctx.lineTo(ix + 31 * u, iy + 50 * u);
+    ctx.lineTo(ix + 55 * u, iy + 25 * u);
+    ctx.stroke();
+  }
+  const tx = ix + size + 18 * u, max = p.x + w - 18 * u - tx;
+  ctx.fillStyle = '#147c80';
+  ctx.font = `700 ${15 * u}px ${FONT}`;
+  ctx.fillText(fit(cfg.head || achievementHeader(), max), tx, p.y + 34 * u);
+  ctx.fillStyle = '#17353d';
+  ctx.font = `700 ${23 * u}px ${FONT}`;
+  ctx.fillText(fit(cfg.title, max), tx, p.y + 64 * u);
+  if (cfg.desc) {
+    ctx.fillStyle = '#627a7f';
+    ctx.font = `400 ${14 * u}px ${FONT}`;
+    ctx.fillText(fit(cfg.desc, max), tx, p.y + 88 * u);
+  }
+  ctx.restore();
+}
+
+const DRAW = { xbox: drawXbox, ps: drawPS, steam: drawSteam, blocks: drawBlock, badge: drawBadge, arcade: drawArcade, mobile: drawMobile };
 
 function fitPreview() {
   if (OBS || !canvas.parentElement) return;
@@ -618,7 +1050,30 @@ const SOUNDS = {
   retro(t0) {
     [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) =>
       tone(f, t0 + i * .065, i === 4 ? .45 : .09, { type: 'square', gain: .07, attack: .002 }));
-  }
+  },
+  blocks(t0) {
+    tone(261.63, t0, .11, { type: 'square', gain: .08, attack: .002 });
+    tone(329.63, t0 + .13, .11, { type: 'square', gain: .08, attack: .002 });
+    tone(392, t0 + .26, .35, { type: 'triangle', gain: .11, attack: .003 });
+  },
+  badge(t0) {
+    tone(440, t0, .14, { type: 'triangle', gain: .13 });
+    tone(659.25, t0 + .11, .17, { type: 'triangle', gain: .15 });
+    tone(987.77, t0 + .23, .45, { type: 'sine', gain: .14 });
+    tone(1318.51, t0 + .26, .3, { type: 'sine', gain: .05 });
+  },
+  arcade(t0) {
+    [196, 293.66, 392, 587.33].forEach((frequency, i) => {
+      tone(frequency, t0 + i * .095, i === 3 ? .3 : .075, {
+        type: 'square', gain: .075, attack: .002
+      });
+    });
+  },
+  mobile(t0) {
+    tone(523.25, t0, .2, { type: 'sine', gain: .1 });
+    tone(783.99, t0 + .11, .4, { type: 'sine', gain: .12 });
+    tone(1046.5, t0 + .14, .35, { type: 'sine', gain: .035 });
+  },
 };
 function playSound() {
   let kind = cfg.snd === 'auto' ? AUTO_SOUND[cfg.st] : cfg.snd;
@@ -661,7 +1116,7 @@ function drawCropGuide() {
   ctx.setLineDash([8 * k, 6 * k]); ctx.lineWidth = 2 * k; ctx.strokeStyle = '#6c8cff';
   ctx.strokeRect(r.x + k, r.y + k, r.w - 2 * k, r.h - 2 * k);
   ctx.setLineDash([]);
-  const label = `recorte ${r.w}×${r.h}`;
+  const label = `${language === 'en-US' ? 'crop' : 'recorte'} ${r.w}×${r.h}`;
   ctx.font = `600 ${12 * k}px system-ui,sans-serif`;
   const lw = ctx.measureText(label).width + 12 * k, ly = r.y >= 22 * k ? r.y - 20 * k : r.y + r.h + 2 * k;
   ctx.fillStyle = '#6c8cff'; ctx.fillRect(r.x, ly, lw, 18 * k);
@@ -705,6 +1160,17 @@ if (OBS) {
 document.querySelector('canvas-slot').replaceWith(canvas);
 badge = $('badge');
 const status = (msg, ok) => { const el = $('status'); el.textContent = msg; el.className = ok ? 'ok' : ''; };
+$('language').addEventListener('change', event => {
+  const previous = language;
+  language = event.target.value;
+  for (const key of ['title', 'desc']) {
+    if (cfg[key] === DEFAULT_COPY[previous][key]) cfg[key] = DEFAULT_COPY[language][key];
+  }
+  try { localStorage.setItem('achv-lang', language); } catch {}
+  save();
+  translateUI();
+  syncUI();
+});
 
 function syncUI() {
   document.querySelectorAll('[data-k]').forEach(el => {
@@ -713,8 +1179,11 @@ function syncUI() {
     else el.value = cfg[k];
   });
   document.querySelectorAll('[data-style]').forEach(b => b.setAttribute('aria-pressed', b.dataset.style === cfg.st));
-  document.querySelectorAll('[data-only]').forEach(el => el.hidden = el.dataset.only !== cfg.st);
-  $('c_head').placeholder = DEFAULT_HEADER[cfg.st];
+  document.querySelectorAll('[data-only]').forEach(el => el.hidden = !el.dataset.only.split(' ').includes(cfg.st));
+  $('c_head').placeholder = achievementHeader();
+  $('pointsLabel').innerHTML = cfg.st === 'arcade'
+    ? tr('Pontuação <small style="color:var(--mute)">— vazio para esconder</small>', 'Score <small style="color:var(--mute)">— leave empty to hide</small>')
+    : tr('Pontos (G) <small style="color:var(--mute)">— vazio para esconder</small>', 'Points (G) <small style="color:var(--mute)">— leave empty to hide</small>');
   $('customSnd').hidden = cfg.snd !== 'custom';
   $('v_vol').textContent = Math.round(cfg.vol * 100) + '%';
   $('v_dur').textContent = cfg.dur.toFixed(1) + ' s';
@@ -724,7 +1193,7 @@ function syncUI() {
 }
 function obsLink() {
   const base = location.href.split(/[?#]/)[0];
-  const p = new URLSearchParams({ obs: '1' });
+  const p = new URLSearchParams({ obs: '1', lang: language });
   for (const k of OBS_KEYS) p.set(k, cfg[k]);
   return base + '?' + p.toString();
 }
@@ -771,8 +1240,8 @@ $('sndFile').addEventListener('change', async e => {
   ensureAudio();
   try {
     soundBuf = await actx.decodeAudioData(await f.arrayBuffer());
-    cfg.sndfile = f.name; save(); syncUI(); status(`Som carregado: ${f.name}`, true);
-  } catch { status('Não consegui ler esse arquivo de áudio.'); }
+    cfg.sndfile = f.name; save(); syncUI(); status(`${tr('Som carregado', 'Sound loaded')}: ${f.name}`, true);
+  } catch { status(tr('Não consegui ler esse arquivo de áudio.', 'Could not read this audio file.')); }
 });
 $('testSnd').addEventListener('click', () => { ensureAudio(); playSound(); });
 
@@ -785,9 +1254,9 @@ window.addEventListener('keydown', e => {
 
 $('copyObs').addEventListener('click', async () => {
   const url = obsLink();
-  try { await navigator.clipboard.writeText(url); status('Link do OBS copiado.', true); }
-  catch { $('obsUrl').select(); document.execCommand('copy'); status('Link do OBS copiado.', true); }
-  if (cfg.snd === 'custom' && !cfg.sndfile) status('Atenção: escolha o nome do arquivo de áudio para o OBS.');
+  try { await navigator.clipboard.writeText(url); status(tr('Link do OBS copiado.', 'OBS link copied.'), true); }
+  catch { $('obsUrl').select(); document.execCommand('copy'); status(tr('Link do OBS copiado.', 'OBS link copied.'), true); }
+  if (cfg.snd === 'custom' && !cfg.sndfile) status(tr('Atenção: escolha o nome do arquivo de áudio para o OBS.', 'Choose an audio filename for OBS.'));
 });
 
 /* ---------------- gravação ---------------- */
@@ -797,9 +1266,9 @@ const MIMES = {
 };
 const pickMime = fmt => window.MediaRecorder ? MIMES[fmt].find(m => MediaRecorder.isTypeSupported(m)) : null;
 const mp4Opt = $('c_fmt').querySelector('option[value=mp4]');
-if (!pickMime('mp4')) { mp4Opt.disabled = true; mp4Opt.textContent = 'MP4 (não suportado aqui)'; if (cfg.fmt === 'mp4') cfg.fmt = 'webm'; }
+if (!pickMime('mp4')) { mp4Opt.disabled = true; mp4Opt.textContent = tr('MP4 (não suportado aqui)', 'MP4 (not supported here)'); if (cfg.fmt === 'mp4') cfg.fmt = 'webm'; }
 const wait = ms => new Promise(r => setTimeout(r, ms));
-const slug = x => String(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'conquista';
+const slug = x => String(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || tr('conquista', 'achievement');
 
 const lockControls = on => document.querySelectorAll('aside input, aside select, aside button, .actions button, .actions select')
   .forEach(el => { el.disabled = on; });
@@ -807,10 +1276,10 @@ const lockControls = on => document.querySelectorAll('aside input, aside select,
 $('rec').addEventListener('click', async () => {
   if (recording) return;
   const mime = pickMime(cfg.fmt);
-  if (!mime || !canvas.captureStream) { status('Este navegador não grava vídeo. Use Chrome ou Edge.'); return; }
+  if (!mime || !canvas.captureStream) { status(tr('Este navegador não grava vídeo. Use Chrome ou Edge.', 'This browser cannot record video. Use Chrome or Edge.')); return; }
   // Snapshot do que vale para esta gravação: os controles ficam travados até o fim.
   const area = cfg.area, ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  const name = `conquista-${cfg.st}-${slug(cfg.title)}${area === 'crop' ? '-recorte' : ''}.${ext}`;
+  const name = `${tr('conquista', 'achievement')}-${cfg.st}-${slug(cfg.title)}${area === 'crop' ? tr('-recorte', '-crop') : ''}.${ext}`;
   const transparentMp4 = cfg.bg === 'transparent' && ext === 'mp4';
   lockControls(true);
   recording = true; playing = false; badge.hidden = true;
@@ -833,7 +1302,7 @@ $('rec').addEventListener('click', async () => {
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
     rec.onerror = e => { failed = e.error || new Error('erro no gravador'); };
     const done = new Promise(r => { rec.onstop = r; });
-    status('⏺ Gravando… mantenha esta aba visível.');
+    status(tr('⏺ Gravando… mantenha esta aba visível.', '⏺ Recording… keep this tab visible.'));
     rec.start(250);
     await wait(300);
     trigger(true);
@@ -848,10 +1317,10 @@ $('rec').addEventListener('click', async () => {
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-    status(`Vídeo salvo: ${name} (${(blob.size / 1e6).toFixed(1)} MB)` +
-      (transparentMp4 ? ' — MP4 não guarda transparência; o fundo sai preto.' : ''), true);
+    status(`${tr('Vídeo salvo', 'Video saved')}: ${name} (${(blob.size / 1e6).toFixed(1)} MB)` +
+      (transparentMp4 ? tr(' — MP4 não guarda transparência; o fundo sai preto.', ' — MP4 does not preserve transparency; the background will be black.') : ''), true);
   } catch (err) {
-    status(`Falha na gravação: ${err && err.message ? err.message : err}. Tente WebM ou outro navegador.`);
+    status(`${tr('Falha na gravação', 'Recording failed')}: ${err && err.message ? err.message : err}. ${tr('Tente WebM ou outro navegador.', 'Try WebM or another browser.')}`);
   } finally {
     recording = false; recCrop = null;
     if (vstream) vstream.getTracks().forEach(t => t.stop());
