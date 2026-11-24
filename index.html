@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador de Conquistas</title>
+<meta name="description" content="Crie animações de conquista desbloqueada nos estilos Xbox, PlayStation e Steam, com som. Use no OBS ou exporte vídeo.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+<style>
+:root{--bg:#0d0e11;--panel:#15171c;--card:#1b1e24;--line:#272b33;--text:#e9ebef;--mute:#8d939d;--acc:#6c8cff;--ok:#3ecf7a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,"Segoe UI",Inter,Arial,sans-serif}
+body.obs{background:transparent!important;overflow:hidden}
+body.obs #app{display:none}
+body.obs #cv{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;object-fit:contain;background:none;border:0;border-radius:0}
+#app{display:grid;grid-template-columns:380px 1fr;min-height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:20px 18px 40px;overflow:auto;max-height:100vh}
+main{padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0;overflow:auto;max-height:100vh}
+main>*{flex-shrink:0}
+h1{font-size:18px;margin:0 0 4px}
+.sub{color:var(--mute);font-size:12.5px;margin:0 0 18px}
+fieldset{border:0;margin:0 0 18px;padding:0}
+legend{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:8px;font-weight:600}
+label{display:block;font-size:12.5px;color:#c3c7cf;margin:10px 0 4px}
+input[type=text],input[type=number],select{width:100%;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+input[type=color]{width:44px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--card);padding:2px}
+input[type=file]{font-size:12px;color:var(--mute);max-width:100%}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.row>.shrink{flex:0 0 auto}
+.styles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.styles button{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px 6px;font:inherit;font-weight:600;cursor:pointer}
+.styles button span{display:block;width:22px;height:22px;border-radius:50%;margin:0 auto 6px}
+.styles button[aria-pressed=true]{border-color:var(--acc);background:#1f2540}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{margin:0;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12.5px}
+.seg input{accent-color:var(--acc);margin:0}
+.val{float:right;color:var(--mute);font-variant-numeric:tabular-nums}
+.hint{color:var(--mute);font-size:12px;margin:6px 0 0}
+.btn{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#3a404b}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.rec{background:#c0392b;border-color:#c0392b;color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.small{padding:6px 10px;font-size:12px;border-radius:8px}
+.stagewrap{position:relative;display:flex;justify-content:center;align-items:center;background:#08090b;border:1px solid var(--line);border-radius:14px;padding:14px;min-height:240px}
+#cv{display:block;border-radius:6px;
+  background-color:#2a2d33;background-image:linear-gradient(45deg,#33363d 25%,transparent 25%),linear-gradient(-45deg,#33363d 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#33363d 75%),linear-gradient(-45deg,transparent 75%,#33363d 75%);
+  background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0;cursor:pointer}
+.badge{position:absolute;top:22px;left:22px;font-size:11px;background:rgba(0,0,0,.6);color:#cfd3da;padding:3px 8px;border-radius:6px;pointer-events:none}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.actions select{width:auto}
+#status{color:var(--mute);font-size:13px;min-height:1.4em}
+#status.ok{color:var(--ok)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+summary{cursor:pointer;font-weight:600}
+details ol{padding-left:20px;margin:10px 0}
+details li{margin:6px 0;color:#c9cdd4}
+textarea{width:100%;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px ui-monospace,Consolas,monospace;resize:vertical}
+code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
+[hidden]{display:none!important}
+@media (max-width:900px){#app{grid-template-columns:1fr}aside{max-height:none;border-right:0;border-bottom:1px solid var(--line)}main{max-height:none;padding:16px}}
+</style>
+</head>
+<body>
+<canvas id="cv" width="1920" height="1080" title="Clique para disparar"></canvas>
+
+<div id="app">
+<aside>
+  <h1>🏆 Simulador de Conquistas</h1>
+  <p class="sub">Escreva, escolha o estilo e dispare. Funciona no OBS e exporta vídeo.</p>
+
+  <fieldset>
+    <legend>Estilo</legend>
+    <div class="styles">
+      <button data-style="xbox"><span style="background:#107c10"></span>Xbox</button>
+      <button data-style="ps"><span style="background:#2b3c8f"></span>PlayStation</button>
+      <button data-style="steam"><span style="background:#1b2838;border:1px solid #66c0f4"></span>Steam</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Texto</legend>
+    <label for="c_title">Nome da conquista</label>
+    <input type="text" id="c_title" data-k="title" maxlength="120">
+    <label for="c_head">Cabeçalho <small style="color:var(--mute)">(vazio = padrão do estilo)</small></label>
+    <input type="text" id="c_head" data-k="head" maxlength="80">
+    <div data-only="xbox">
+      <label for="c_pts">Pontos (G) <small style="color:var(--mute)">— vazio para esconder</small></label>
+      <input type="text" id="c_pts" data-k="pts" maxlength="6">
+    </div>
+    <div data-only="ps">
+      <label for="c_tier">Troféu</label>
+      <select id="c_tier" data-k="tier">
+        <option value="bronze">Bronze</option><option value="silver">Prata</option>
+        <option value="gold">Ouro</option><option value="platinum">Platina</option>
+      </select>
+    </div>
+    <div data-only="steam">
+      <label for="c_desc">Descrição <small style="color:var(--mute)">(opcional)</small></label>
+      <input type="text" id="c_desc" data-k="desc" maxlength="140">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Ícone</legend>
+    <div class="row">
+      <input type="file" id="iconFile" accept="image/*">
+      <button class="btn small shrink" id="iconClear">Remover</button>
+    </div>
+    <label for="c_icon">Nome do arquivo de ícone (para o OBS)</label>
+    <input type="text" id="c_icon" data-k="icon" placeholder="ex.: icone.png">
+    <div data-only="xbox">
+      <label for="c_accent">Cor do círculo</label>
+      <input type="color" id="c_accent" data-k="accent">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Som</legend>
+    <div class="row">
+      <select id="c_snd" data-k="snd">
+        <option value="auto">Automático (combina com o estilo)</option>
+        <option value="chime">Chime (estilo Xbox)</option>
+        <option value="bell">Sino (estilo PlayStation)</option>
+        <option value="pluck">Pluck (estilo Steam)</option>
+        <option value="retro">Retrô 8‑bit</option>
+        <option value="custom">Meu arquivo de áudio</option>
+        <option value="none">Sem som</option>
+      </select>
+      <button class="btn small shrink" id="testSnd">▶ Ouvir</button>
+    </div>
+    <div id="customSnd" hidden>
+      <label>Arquivo de áudio (mp3/wav/ogg)</label>
+      <input type="file" id="sndFile" accept="audio/*">
+      <label for="c_sndfile">Nome do arquivo de áudio (para o OBS)</label>
+      <input type="text" id="c_sndfile" data-k="sndfile" placeholder="ex.: som.mp3">
+    </div>
+    <label for="c_vol">Volume <span class="val" id="v_vol"></span></label>
+    <input type="range" id="c_vol" data-k="vol" min="0" max="1" step="0.05">
+    <p class="hint">Os sons embutidos são sintetizados, inspirados nos originais. Para usar o som oficial, carregue o seu arquivo.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Tempo e posição</legend>
+    <label for="c_dur">Tempo na tela <span class="val" id="v_dur"></span></label>
+    <input type="range" id="c_dur" data-k="dur" min="3" max="12" step="0.5">
+    <label for="c_pos">Posição</label>
+    <select id="c_pos" data-k="pos">
+      <option value="default">Padrão da plataforma</option>
+      <option value="center">Centro</option>
+      <option value="tc">Topo, centro</option><option value="bc">Base, centro</option>
+      <option value="tr">Topo, direita</option><option value="br">Base, direita</option>
+      <option value="tl">Topo, esquerda</option><option value="bl">Base, esquerda</option>
+    </select>
+    <label for="c_scale">Escala <span class="val" id="v_scale"></span></label>
+    <input type="range" id="c_scale" data-k="scale" min="0.5" max="2.5" step="0.05">
+    <label for="c_res">Resolução</label>
+    <select id="c_res" data-k="res">
+      <option value="1080">1920 × 1080 (16:9)</option>
+      <option value="720">1280 × 720 (16:9)</option>
+      <option value="1440">2560 × 1440 (16:9)</option>
+      <option value="vert">1080 × 1920 (vertical — Reels/TikTok/Shorts)</option>
+      <option value="square">1080 × 1080 (quadrado)</option>
+    </select>
+  </fieldset>
+
+  <fieldset>
+    <legend>Fundo</legend>
+    <div class="seg">
+      <label><input type="radio" name="bg" value="transparent" data-k="bg">Transparente</label>
+      <label><input type="radio" name="bg" value="black" data-k="bg">Preto</label>
+      <label><input type="radio" name="bg" value="green" data-k="bg">Verde (chroma)</label>
+      <label><input type="radio" name="bg" value="custom" data-k="bg">Cor <input type="color" id="c_bgc" data-k="bgc" style="width:28px;height:22px;padding:0;border:0"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Só no modo OBS</legend>
+    <div class="row">
+      <div><label for="c_delay">Atraso ao abrir (s)</label><input type="number" id="c_delay" data-k="delay" min="0" step="0.1"></div>
+      <div><label for="c_repeat">Repetir a cada (s)</label><input type="number" id="c_repeat" data-k="repeat" min="0" step="1"></div>
+    </div>
+    <p class="hint">Repetir = 0 desliga a repetição.</p>
+  </fieldset>
+  <p class="hint" style="border-top:1px solid var(--line);padding-top:12px">Projeto independente e não oficial, sem afiliação com Microsoft, Sony ou Valve. Os sons são sintetizados. Tudo roda no seu navegador: nada é enviado ao servidor.</p>
+</aside>
+
+<main>
+  <div class="stagewrap">
+    <canvas-slot></canvas-slot>
+    <span class="badge" id="badge">prévia estática — clique para animar</span>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="play">▶ Disparar <small style="opacity:.7">(espaço)</small></button>
+    <button class="btn rec" id="rec">⏺ Gravar vídeo</button>
+    <select id="c_area" data-k="area" title="Área exportada">
+      <option value="crop">Só a conquista (recorte)</option>
+      <option value="full">Tela inteira</option>
+    </select>
+    <select id="c_fmt" data-k="fmt">
+      <option value="mp4">MP4</option>
+      <option value="webm">WebM</option>
+    </select>
+    <button class="btn" id="copyObs">🔗 Copiar link do OBS</button>
+  </div>
+  <div id="status"></div>
+
+  <details open>
+    <summary>Como usar no OBS</summary>
+    <ol>
+      <li>No OBS: <b>Fontes → + → Navegador</b>. Desmarque <b>Arquivo local</b> e cole o link abaixo no campo <b>URL</b>.</li>
+      <li>Largura/altura = a resolução escolhida (ex.: <code>1920</code> × <code>1080</code>).</li>
+      <li>Marque <b>Controlar áudio via OBS</b> (o som aparece no mixer) e <b>Desligar a fonte quando não estiver visível</b>.</li>
+      <li><b>Para disparar:</b> ligue o olho 👁 da fonte. Cada vez que ela aparece, a animação toca. Dica: em <b>Configurações → Teclas de atalho</b>, defina um atalho de “Mostrar/Ocultar” para essa fonte.</li>
+      <li>Ícone ou som próprios: coloque os arquivos <b>na mesma pasta deste index.html</b> e digite o nome nos campos “para o OBS”.</li>
+    </ol>
+    <textarea id="obsUrl" rows="3" readonly></textarea>
+    <p class="hint"><a id="obsOpen" href="#" target="_blank" style="color:var(--acc)">Abrir o modo OBS numa aba</a> para testar (clique na página ou aperte espaço para disparar).</p>
+  </details>
+
+  <details>
+    <summary>Exportar vídeo para redes sociais</summary>
+    <ol>
+      <li>Use Chrome ou Edge e mantenha esta aba visível durante a gravação (dura alguns segundos).</li>
+      <li>Para TikTok/Reels/Shorts/YouTube, use fundo <b>Preto</b> ou <b>Verde (chroma)</b> — essas plataformas não aceitam transparência. O verde dá para recortar em qualquer editor (CapCut, Premiere, DaVinci).</li>
+      <li><b>Transparente</b> só faz sentido em WebM, e depende do navegador gravar o canal alfa. Se o resultado vier com fundo preto, use o verde.</li>
+      <li>MP4 só aparece se o navegador suportar gravar nesse formato; senão, grave em WebM.</li>
+      <li><b>Só a conquista (recorte):</b> grava apenas a área do popup (a linha tracejada na prévia), com folga para sombra e brilho. Bom para usar como camada no CapCut/Premiere/DaVinci: grave em <b>WebM transparente</b> ou em verde e posicione onde quiser.</li>
+    </ol>
+  </details>
+</main>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const OBS = params.has('obs');
+
+const FONT = '"Segoe UI","Segoe UI Variable",Inter,"Helvetica Neue",Arial,sans-serif';
+const DEFAULT_HEADER = { xbox: 'Conquista desbloqueada', ps: 'Você ganhou um troféu', steam: 'Conquista desbloqueada!' };
+const DEFAULT_DUR = { xbox: 6, ps: 5, steam: 5 };
+const AUTO_SOUND = { xbox: 'chime', ps: 'bell', steam: 'pluck' };
+const RES = { '1080': [1920, 1080], '720': [1280, 720], '1440': [2560, 1440], vert: [1080, 1920], square: [1080, 1080] };
+const TIERS = { bronze: ['#e3a06a', '#8a4f22'], silver: ['#f0f3f6', '#8d96a0'], gold: ['#ffdf6e', '#a87a14'], platinum: ['#eaf6ff', '#7fa5c4'] };
+const POS = { center: ['c', 'c'], tc: ['t', 'c'], bc: ['b', 'c'], tr: ['t', 'r'], br: ['b', 'r'], tl: ['t', 'l'], bl: ['b', 'l'] };
+const NUM = ['vol', 'dur', 'scale', 'delay', 'repeat'];
+const DEFAULTS = {
+  st: 'xbox', title: 'Zerou sem morrer', head: '', pts: '100', desc: 'Termine o jogo sem perder nenhuma vida.',
+  tier: 'gold', snd: 'auto', sndfile: '', icon: '', vol: 0.8, dur: 6, pos: 'default', scale: 1,
+  bg: 'transparent', bgc: '#000000', res: '1080', accent: '#107c10', delay: 0.5, repeat: 0, fmt: 'mp4', area: 'crop'
+};
+const OBS_KEYS = ['st','title','head','pts','desc','tier','snd','sndfile','icon','vol','dur','pos','scale','bg','bgc','res','accent','delay','repeat'];
+
+let cfg = { ...DEFAULTS };
+if (OBS) {
+  for (const k of OBS_KEYS) if (params.has(k)) cfg[k] = params.get(k);
+} else {
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem('achv-cfg') || '{}')); } catch {}
+  if (!cfg.v2) { cfg.area = 'crop'; cfg.v2 = 1; }
+}
+for (const k of NUM) { cfg[k] = parseFloat(cfg[k]); if (!isFinite(cfg[k])) cfg[k] = DEFAULTS[k]; }
+if (!DEFAULT_HEADER[cfg.st]) cfg.st = 'xbox';
+
+const save = () => { if (!OBS) try { localStorage.setItem('achv-cfg', JSON.stringify(cfg)); } catch {} };
+
+/* ---------------- canvas ---------------- */
+const canvas = $('cv');
+const ctx = canvas.getContext('2d');
+let W = 1920, H = 1080, s = 1;
+let iconImg = null;
+let MEASURE = false, lastRect = { x: 0, y: 0, w: 0, h: 0 };
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = x => 1 - Math.pow(1 - x, 3);
+const eIn = x => x * x * x;
+const eInOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+function rr(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, h / 2, w / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+const font = (weight, size) => { ctx.font = `${weight} ${size * s}px ${FONT}`; };
+function fit(text, maxW) {
+  text = String(text || '');
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t.trimEnd() + '…';
+}
+function cover(img, x, y, w, h) {
+  const ir = img.naturalWidth / img.naturalHeight, r = w / h;
+  let sw, sh, sx, sy;
+  if (ir > r) { sh = img.naturalHeight; sw = sh * r; sx = (img.naturalWidth - sw) / 2; sy = 0; }
+  else { sw = img.naturalWidth; sh = sw / r; sx = 0; sy = (img.naturalHeight - sh) / 2; }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+function lighten(hex, amt) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = sh => Math.round(((n >> sh) & 255) + (255 - ((n >> sh) & 255)) * amt);
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+// Troféu genérico desenhado num quadrado de 100 unidades centrado em (cx,cy)
+function trophy(cx, cy, size, color, shine) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const k = size / 100; ctx.scale(k, k);
+  let paint = color;
+  if (Array.isArray(color)) {
+    paint = ctx.createLinearGradient(-30, -42, 30, 42);
+    paint.addColorStop(0, color[0]); paint.addColorStop(1, color[1]);
+  }
+  ctx.fillStyle = paint; ctx.strokeStyle = paint;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(-26, -31); ctx.bezierCurveTo(-47, -31, -45, -2, -17, 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(26, -31); ctx.bezierCurveTo(47, -31, 45, -2, 17, 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-28, -41); ctx.lineTo(28, -41); ctx.lineTo(27, -15);
+  ctx.bezierCurveTo(25, 6, 12, 14, 0, 14); ctx.bezierCurveTo(-12, 14, -25, 6, -27, -15); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-5, 12); ctx.lineTo(5, 12); ctx.lineTo(7, 28); ctx.lineTo(-7, 28); ctx.closePath(); ctx.fill();
+  rr(-19, 28, 38, 8, 2); ctx.fill();
+  rr(-24, 35, 48, 7, 2); ctx.fill();
+  if (shine) {
+    ctx.fillStyle = shine;
+    ctx.beginPath(); ctx.moveTo(-19, -35); ctx.lineTo(-11, -35);
+    ctx.bezierCurveTo(-11, -12, -7, 0, -2, 7); ctx.bezierCurveTo(-13, 3, -19, -9, -19, -35); ctx.fill();
+  }
+  ctx.restore();
+}
+function place(w, h, def, defMargin) {
+  const key = cfg.pos === 'default' ? def : cfg.pos;
+  const [v, hz] = POS[key] || POS.center;
+  const m = cfg.pos === 'default' ? defMargin : 48 * s;
+  const x = hz === 'l' ? m : hz === 'r' ? W - m - w : (W - w) / 2;
+  const y = v === 't' ? m : v === 'b' ? H - m - h : (H - h) / 2;
+  return { x, y, v, hz };
+}
+
+/* ---- Estilo Xbox: círculo que "estoura" e abre uma pílula ---- */
+function drawXbox(t, D) {
+  const R = 48 * s, h = R * 2;
+  const header = cfg.head || DEFAULT_HEADER.xbox;
+  const pts = String(cfg.pts || '').trim();
+  const title = (pts ? `${pts}G  ·  ` : '') + cfg.title;
+  const maxT = Math.min(W * 0.86, 1150 * s) - h - 70 * s;
+  font(600, 21); const hdr = fit(header, maxT); const hw = ctx.measureText(hdr).width;
+  font(700, 29); const ttl = fit(title, maxT); const tw = ctx.measureText(ttl).width;
+  const w = Math.max(520 * s, h + 24 * s + Math.max(hw, tw) + 46 * s);
+  const p = place(w, h, 'bc', 110 * s);
+  lastRect = { x: p.x, y: p.y, w, h }; if (MEASURE) return;
+  const cx = p.x + w / 2, cy = p.y + R;
+  const o = D - 1.0;
+  const pop = eBack(prog(t, 0, 0.38));
+  const exp = eOut(prog(t, 0.32, 0.82)) * (1 - eInOut(prog(t, o + 0.12, o + 0.55)));
+  const out = 1 - eIn(prog(t, o + 0.5, o + 0.8));
+  const cs = pop * out;
+  if (cs <= 0.001) return;
+  const curW = h + (w - h) * exp, left = cx - curW / 2;
+
+  if (exp > 0.002) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 26 * s; ctx.shadowOffsetY = 6 * s;
+    const g = ctx.createLinearGradient(0, p.y, 0, p.y + h);
+    g.addColorStop(0, '#303133'); g.addColorStop(1, '#1a1b1d');
+    ctx.fillStyle = g; rr(left, p.y, curW, h, R); ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 1.5 * s; ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.stroke();
+    ctx.clip();
+    const fadeOut = 1 - prog(t, o, o + 0.18);
+    const a1 = eOut(prog(t, 0.7, 1.0)) * fadeOut, a2 = eOut(prog(t, 0.8, 1.1)) * fadeOut;
+    const tx = left + h + 22 * s;
+    font(600, 21); ctx.globalAlpha = a1; ctx.fillStyle = '#d4d4d4';
+    ctx.fillText(hdr, tx + (1 - a1) * 18 * s, cy - 7 * s);
+    font(700, 29); ctx.globalAlpha = a2; ctx.fillStyle = '#ffffff';
+    ctx.fillText(ttl, tx + (1 - a2) * 18 * s, cy + 28 * s);
+    const sp = prog(t, 1.15, 1.9);
+    if (sp > 0 && sp < 1) {
+      const sx = left - 200 * s + (curW + 400 * s) * eInOut(sp);
+      const sg = ctx.createLinearGradient(sx - 90 * s, 0, sx + 90 * s, 0);
+      sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(.5, 'rgba(255,255,255,.13)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = 1; ctx.fillStyle = sg; ctx.fillRect(left, p.y, curW, h);
+    }
+    ctx.restore();
+  }
+
+  const ccx = left + R;
+  const rp = prog(t, 0.12, 0.85);
+  if (rp > 0 && rp < 1) {
+    ctx.save();
+    ctx.globalAlpha = (1 - rp) * 0.8; ctx.strokeStyle = cfg.accent; ctx.lineWidth = 6 * s * (1 - rp) + 1;
+    ctx.beginPath(); ctx.arc(ccx, cy, R * (1 + rp * 1.1), 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate(ccx, cy); ctx.scale(cs, cs);
+  ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 18 * s;
+  const cg = ctx.createRadialGradient(-R * .3, -R * .4, R * .1, 0, 0, R);
+  cg.addColorStop(0, lighten(cfg.accent, .25)); cg.addColorStop(1, cfg.accent);
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  if (iconImg) {
+    ctx.beginPath(); ctx.arc(0, 0, R - 4 * s, 0, Math.PI * 2); ctx.clip();
+    cover(iconImg, -R + 4 * s, -R + 4 * s, 2 * R - 8 * s, 2 * R - 8 * s);
+  } else {
+    ctx.rotate((1 - Math.min(pop, 1)) * -0.8);
+    trophy(0, 0, R * 1.15, '#ffffff');
+  }
+  ctx.restore();
+}
+
+/* ---- Estilo PlayStation: cartão escuro no canto superior direito ---- */
+function drawPS(t, D) {
+  const iconS = 72 * s, pad = 16 * s, h = iconS + pad * 2;
+  const header = cfg.head || DEFAULT_HEADER.ps;
+  const maxT = Math.min(W * 0.86, 900 * s) - iconS - pad * 2 - 50 * s;
+  font(400, 19); const hdr = fit(header, maxT); const hw = ctx.measureText(hdr).width;
+  font(600, 24); const ttl = fit(cfg.title, maxT - 30 * s); const tw = ctx.measureText(ttl).width + 30 * s;
+  const w = Math.max(420 * s, pad + iconS + 18 * s + Math.max(hw, tw) + 28 * s);
+  const p = place(w, h, 'tr', 40 * s);
+  lastRect = { x: p.x, y: p.y, w, h }; if (MEASURE) return;
+  const inP = eOut(prog(t, 0, 0.4)), outP = eIn(prog(t, D - 0.4, D));
+  const a = inP * (1 - outP);
+  if (a <= 0.001) return;
+  const dir = p.hz === 'r' ? 1 : p.hz === 'l' ? -1 : 0;
+  const off = (1 - inP) + outP;
+  const dx = dir * off * 40 * s, dy = dir === 0 ? (p.v === 'b' ? 1 : -1) * off * 30 * s : 0;
+  const tier = TIERS[cfg.tier] || TIERS.gold;
+
+  ctx.save();
+  ctx.globalAlpha = a; ctx.translate(dx, dy);
+  ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 30 * s; ctx.shadowOffsetY = 8 * s;
+  ctx.fillStyle = 'rgba(36,37,41,.97)'; rr(p.x, p.y, w, h, 16 * s); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1.5 * s; ctx.stroke();
+
+  const ix = p.x + pad, iy = p.y + pad;
+  ctx.save(); rr(ix, iy, iconS, iconS, 10 * s); ctx.clip();
+  if (iconImg) cover(iconImg, ix, iy, iconS, iconS);
+  else {
+    const g = ctx.createLinearGradient(ix, iy, ix + iconS, iy + iconS);
+    g.addColorStop(0, '#3c4049'); g.addColorStop(1, '#1e2025');
+    ctx.fillStyle = g; ctx.fillRect(ix, iy, iconS, iconS);
+    trophy(ix + iconS / 2, iy + iconS / 2 + 2 * s, iconS * 0.66, tier, 'rgba(255,255,255,.35)');
+  }
+  // brilho que atravessa o ícone na entrada
+  const fp = prog(t, 0.3, 0.95);
+  if (fp > 0 && fp < 1) {
+    const fx = ix - iconS + iconS * 3 * fp;
+    const fg = ctx.createLinearGradient(fx - 30 * s, iy, fx + 30 * s, iy + iconS);
+    fg.addColorStop(0, 'rgba(255,255,255,0)'); fg.addColorStop(.5, 'rgba(255,255,255,.35)'); fg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = fg; ctx.fillRect(ix, iy, iconS, iconS);
+  }
+  ctx.restore();
+
+  const tx = ix + iconS + 18 * s;
+  font(400, 19); ctx.fillStyle = '#b4b8bf'; ctx.fillText(hdr, tx, p.y + pad + 27 * s);
+  trophy(tx + 11 * s, p.y + pad + 52 * s, 24 * s, tier, null);
+  font(600, 24); ctx.fillStyle = '#ffffff'; ctx.fillText(ttl, tx + 30 * s, p.y + pad + 61 * s);
+  ctx.restore();
+}
+
+/* ---- Estilo Steam: toast que sobe no canto inferior direito ---- */
+function drawSteam(t, D) {
+  const iconS = 80 * s, pad = 14 * s, h = iconS + pad * 2;
+  const header = cfg.head || DEFAULT_HEADER.steam;
+  const desc = String(cfg.desc || '').trim();
+  const maxT = Math.min(W * 0.86, 820 * s) - iconS - pad * 2 - 40 * s;
+  font(700, 21); const hdr = fit(header, maxT); const hw = ctx.measureText(hdr).width;
+  font(400, 19); const nm = fit(cfg.title, maxT); const nw = ctx.measureText(nm).width;
+  font(400, 16); const ds = desc ? fit(desc, maxT) : ''; const dw = ds ? ctx.measureText(ds).width : 0;
+  const w = Math.max(440 * s, pad + iconS + 16 * s + Math.max(hw, nw, dw) + 24 * s);
+  const p = place(w, h, 'br', 24 * s);
+  lastRect = { x: p.x, y: p.y, w, h }; if (MEASURE) return;
+  const inP = eOut(prog(t, 0, 0.45)), outP = eIn(prog(t, D - 0.45, D));
+  const off = (1 - inP) + outP;
+  let dy = 0, a = 1;
+  if (p.v === 'b') dy = off * (H - p.y);
+  else if (p.v === 't') dy = -off * (p.y + h);
+  else { dy = off * 40 * s; a = 1 - Math.min(1, off); }
+  if (a <= 0.001 || off >= 0.999) return;
+
+  ctx.save();
+  ctx.globalAlpha = a; ctx.translate(0, dy);
+  ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 24 * s; ctx.shadowOffsetY = 4 * s;
+  const g = ctx.createLinearGradient(p.x, p.y, p.x + w * 0.3, p.y + h);
+  g.addColorStop(0, '#2c3d52'); g.addColorStop(1, '#161b22');
+  ctx.fillStyle = g; rr(p.x, p.y, w, h, 4 * s); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = 'rgba(102,192,244,.22)'; ctx.lineWidth = 1.2 * s; ctx.stroke();
+  ctx.save(); rr(p.x, p.y, w, h, 4 * s); ctx.clip();
+  ctx.fillStyle = 'rgba(102,192,244,.55)'; ctx.fillRect(p.x, p.y, w, 2 * s);
+  const sp = prog(t, 0.4, 1.2);
+  if (sp > 0 && sp < 1) {
+    const sx = p.x - 150 * s + (w + 300 * s) * eInOut(sp);
+    const sg = ctx.createLinearGradient(sx - 80 * s, 0, sx + 80 * s, 0);
+    sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(.5, 'rgba(255,255,255,.08)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sg; ctx.fillRect(p.x, p.y, w, h);
+  }
+  ctx.restore();
+
+  const ix = p.x + pad, iy = p.y + pad;
+  ctx.save(); rr(ix, iy, iconS, iconS, 3 * s); ctx.clip();
+  if (iconImg) cover(iconImg, ix, iy, iconS, iconS);
+  else {
+    const ig = ctx.createLinearGradient(ix, iy, ix + iconS, iy + iconS);
+    ig.addColorStop(0, '#4b7da8'); ig.addColorStop(1, '#1b2838');
+    ctx.fillStyle = ig; ctx.fillRect(ix, iy, iconS, iconS);
+    trophy(ix + iconS / 2, iy + iconS / 2 + 2 * s, iconS * 0.64, ['#ffe28a', '#c48e1a'], 'rgba(255,255,255,.35)');
+  }
+  ctx.restore();
+
+  const tx = ix + iconS + 16 * s, cy = p.y + h / 2;
+  if (ds) {
+    font(700, 21); ctx.fillStyle = '#ffffff'; ctx.fillText(hdr, tx, p.y + pad + 23 * s);
+    font(400, 19); ctx.fillStyle = '#c6d4df'; ctx.fillText(nm, tx, p.y + pad + 50 * s);
+    font(400, 16); ctx.fillStyle = '#8f98a0'; ctx.fillText(ds, tx, p.y + pad + 74 * s);
+  } else {
+    font(700, 21); ctx.fillStyle = '#ffffff'; ctx.fillText(hdr, tx, cy - 5 * s);
+    font(400, 19); ctx.fillStyle = '#c6d4df'; ctx.fillText(nm, tx, cy + 23 * s);
+  }
+  ctx.restore();
+}
+
+const DRAW = { xbox: drawXbox, ps: drawPS, steam: drawSteam };
+
+function fitPreview() {
+  if (OBS || !canvas.parentElement) return;
+  const box = canvas.parentElement;
+  const aw = box.clientWidth - 28, ah = Math.max(200, window.innerHeight * 0.62);
+  const k = Math.min(aw / canvas.width, ah / canvas.height);
+  canvas.style.width = Math.floor(canvas.width * k) + 'px';
+  canvas.style.height = Math.floor(canvas.height * k) + 'px';
+}
+function render(t) {
+  const [rw, rh] = RES[cfg.res] || RES['1080'];
+  if (canvas.width !== rw || canvas.height !== rh) { canvas.width = rw; canvas.height = rh; fitPreview(); }
+  W = rw; H = rh; s = Math.min(W, H) / 1080 * cfg.scale;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.shadowColor = 'transparent'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  if (cfg.bg === 'transparent') ctx.clearRect(0, 0, W, H);
+  else {
+    ctx.fillStyle = cfg.bg === 'black' ? '#000000' : cfg.bg === 'green' ? '#00ff00' : cfg.bgc;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (t == null) return;
+  (DRAW[cfg.st] || drawXbox)(t, cfg.dur);
+}
+
+/* ---------------- áudio ---------------- */
+let actx = null, master = null, sfx = null, recDest = null, soundBuf = null;
+function ensureAudio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain(); master.connect(actx.destination);
+    // pequeno reverb sintético para dar "ar" aos sons
+    sfx = actx.createGain(); sfx.connect(master);
+    const len = Math.floor(actx.sampleRate * 1.6), ir = actx.createBuffer(2, len, actx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    const conv = actx.createConvolver(); conv.buffer = ir;
+    const wet = actx.createGain(); wet.gain.value = 0.22;
+    sfx.connect(conv).connect(wet).connect(master);
+  }
+  master.gain.value = cfg.vol;
+  if (actx.state === 'suspended') actx.resume();
+}
+function tone(f, t0, dur, { type = 'sine', gain = .2, attack = .006, glide = 0 } = {}) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (glide) o.frequency.exponentialRampToValueAtTime(glide, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(sfx); o.start(t0); o.stop(t0 + dur + .05);
+}
+function noise(t0, dur, { gain = .1, f0 = 600, f1 = 4000, q = 1.2 } = {}) {
+  const len = Math.ceil(actx.sampleRate * dur), b = actx.createBuffer(1, len, actx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource(); src.buffer = b;
+  const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q;
+  f.frequency.setValueAtTime(f0, t0); f.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+  const g = actx.createGain(); g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(gain, t0 + dur * .6); g.gain.linearRampToValueAtTime(0, t0 + dur);
+  src.connect(f).connect(g).connect(sfx); src.start(t0); src.stop(t0 + dur);
+}
+const SOUNDS = {
+  chime(t0) {
+    noise(t0, 0.28, { gain: .09, f0: 500, f1: 5000 });
+    tone(150, t0, 0.22, { gain: .35, glide: 55 });
+    tone(739.99, t0 + .08, .7, { type: 'triangle', gain: .18 });
+    tone(1108.73, t0 + .16, 1.2, { gain: .16 });
+    tone(1479.98, t0 + .16, 1.4, { gain: .12 });
+    tone(2959.96, t0 + .16, .6, { gain: .03 });
+  },
+  bell(t0) {
+    const f = 1244.51;
+    tone(f, t0, 1.8, { gain: .22 }); tone(f * 2, t0, 1.0, { gain: .06 });
+    tone(f * 2.76, t0, .5, { gain: .035 }); tone(f * 5.4, t0, .25, { gain: .015 }); tone(f / 2, t0, 1.4, { gain: .05 });
+  },
+  pluck(t0) {
+    tone(587.33, t0, .25, { type: 'triangle', gain: .22 });
+    tone(880, t0 + .085, .55, { type: 'triangle', gain: .2 });
+    tone(1760, t0 + .085, .3, { gain: .03 });
+  },
+  retro(t0) {
+    [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) =>
+      tone(f, t0 + i * .065, i === 4 ? .45 : .09, { type: 'square', gain: .07, attack: .002 }));
+  }
+};
+function playSound() {
+  let kind = cfg.snd === 'auto' ? AUTO_SOUND[cfg.st] : cfg.snd;
+  if (kind === 'none') return;
+  ensureAudio();
+  if (kind === 'custom') {
+    if (soundBuf) { const src = actx.createBufferSource(); src.buffer = soundBuf; src.connect(master); src.start(); }
+    else if (cfg.sndfile) { const a = new Audio(cfg.sndfile); a.volume = clamp(cfg.vol); a.play().catch(() => {}); }
+    return;
+  }
+  (SOUNDS[kind] || SOUNDS.chime)(actx.currentTime + 0.02);
+}
+
+/* ---------------- loop de animação ---------------- */
+let playing = false, t0 = 0, recording = false;
+function trigger(force = true) {
+  if (!force && playing) return;
+  playing = true; t0 = performance.now();
+  playSound();
+  if (badge) badge.hidden = true;
+}
+const holdT = () => Math.max(1.2, Math.min(2.5, cfg.dur - 1.1));
+// Área que a conquista ocupa (no estado "parado"), com folga para sombra, brilho e anel do estilo Xbox.
+// Dimensões pares porque o H.264 exige.
+function cropRect() {
+  MEASURE = true;
+  try { (DRAW[cfg.st] || drawXbox)(holdT(), cfg.dur); } finally { MEASURE = false; }
+  const r = lastRect, pad = Math.round(64 * s);
+  let x0 = Math.max(0, Math.floor(r.x - pad)), y0 = Math.max(0, Math.floor(r.y - pad));
+  let x1 = Math.min(W, Math.ceil(r.x + r.w + pad)), y1 = Math.min(H, Math.ceil(r.y + r.h + pad));
+  // H.264 exige dimensões pares: cresce 1px para o lado que tem espaço; só encolhe se não houver.
+  if ((x1 - x0) % 2) { if (x0 > 0) x0--; else if (x1 < W) x1++; else x1--; }
+  if ((y1 - y0) % 2) { if (y0 > 0) y0--; else if (y1 < H) y1++; else y1--; }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+let recCrop = null;
+function drawCropGuide() {
+  const r = cropRect(), k = canvas.width / Math.max(1, canvas.clientWidth);
+  ctx.save();
+  ctx.setLineDash([8 * k, 6 * k]); ctx.lineWidth = 2 * k; ctx.strokeStyle = '#6c8cff';
+  ctx.strokeRect(r.x + k, r.y + k, r.w - 2 * k, r.h - 2 * k);
+  ctx.setLineDash([]);
+  const label = `recorte ${r.w}×${r.h}`;
+  ctx.font = `600 ${12 * k}px system-ui,sans-serif`;
+  const lw = ctx.measureText(label).width + 12 * k, ly = r.y >= 22 * k ? r.y - 20 * k : r.y + r.h + 2 * k;
+  ctx.fillStyle = '#6c8cff'; ctx.fillRect(r.x, ly, lw, 18 * k);
+  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(label, r.x + 6 * k, ly + 9 * k);
+  ctx.restore();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let t = null;
+  if (playing) {
+    t = (now - t0) / 1000;
+    if (t > cfg.dur) { playing = false; t = null; if (badge && !OBS) badge.hidden = false; }
+  }
+  if (t == null && !OBS && !recording) t = holdT();
+  render(t);
+  if (recCrop) {
+    const { r, ectx } = recCrop;
+    ectx.clearRect(0, 0, r.w, r.h);
+    ectx.drawImage(canvas, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+  } else if (!OBS && !recording && cfg.area === 'crop') drawCropGuide();
+}
+
+let badge = null;
+
+/* ---------------- modo OBS ---------------- */
+if (OBS) {
+  document.body.classList.add('obs');
+  if (cfg.icon) { const im = new Image(); im.onload = () => { iconImg = im; }; im.src = cfg.icon; }
+  const go = () => trigger(false);
+  setTimeout(go, Math.max(0, cfg.delay) * 1000);
+  if (cfg.repeat > 0) setTimeout(() => setInterval(go, Math.max(cfg.repeat, cfg.dur + 0.5) * 1000), Math.max(0, cfg.delay) * 1000);
+  window.addEventListener('obsSourceVisibleChanged', e => { if (e.detail && e.detail.visible) go(); });
+  window.addEventListener('obsSourceActiveChanged', e => { if (e.detail && e.detail.active) go(); });
+  canvas.addEventListener('click', () => trigger(true));
+  window.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); trigger(true); } });
+  requestAnimationFrame(frame);
+  return;
+}
+
+/* ---------------- painel ---------------- */
+document.querySelector('canvas-slot').replaceWith(canvas);
+badge = $('badge');
+const status = (msg, ok) => { const el = $('status'); el.textContent = msg; el.className = ok ? 'ok' : ''; };
+
+function syncUI() {
+  document.querySelectorAll('[data-k]').forEach(el => {
+    const k = el.dataset.k;
+    if (el.type === 'radio') el.checked = el.value === cfg[k];
+    else el.value = cfg[k];
+  });
+  document.querySelectorAll('[data-style]').forEach(b => b.setAttribute('aria-pressed', b.dataset.style === cfg.st));
+  document.querySelectorAll('[data-only]').forEach(el => el.hidden = el.dataset.only !== cfg.st);
+  $('c_head').placeholder = DEFAULT_HEADER[cfg.st];
+  $('customSnd').hidden = cfg.snd !== 'custom';
+  $('v_vol').textContent = Math.round(cfg.vol * 100) + '%';
+  $('v_dur').textContent = cfg.dur.toFixed(1) + ' s';
+  $('v_scale').textContent = Math.round(cfg.scale * 100) + '%';
+  const url = obsLink();
+  $('obsUrl').value = url; $('obsOpen').href = url;
+}
+function obsLink() {
+  const base = location.href.split(/[?#]/)[0];
+  const p = new URLSearchParams({ obs: '1' });
+  for (const k of OBS_KEYS) p.set(k, cfg[k]);
+  return base + '?' + p.toString();
+}
+
+document.querySelectorAll('[data-k]').forEach(el => {
+  el.addEventListener('input', () => {
+    const k = el.dataset.k;
+    if (el.type === 'radio' && !el.checked) return;
+    cfg[k] = NUM.includes(k) ? parseFloat(el.value) || 0 : el.value;
+    if (k === 'vol' && master) master.gain.value = cfg.vol;
+    save(); syncUI();
+  });
+});
+$('c_bgc').addEventListener('input', () => { cfg.bg = 'custom'; save(); syncUI(); });
+document.querySelectorAll('[data-style]').forEach(b => b.addEventListener('click', () => {
+  if (cfg.st === b.dataset.style) return trigger(true);
+  cfg.st = b.dataset.style; cfg.dur = DEFAULT_DUR[cfg.st];
+  save(); syncUI(); trigger(true);
+}));
+
+function loadIcon(src) {
+  if (!src) { iconImg = null; return; }
+  const im = new Image(); im.onload = () => { iconImg = im; }; im.src = src;
+}
+$('iconFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    loadIcon(r.result);
+    try { localStorage.setItem('achv-icon', r.result); } catch {}
+    cfg.icon = f.name; save(); syncUI();
+  };
+  r.readAsDataURL(f);
+});
+$('iconClear').addEventListener('click', () => {
+  iconImg = null; $('iconFile').value = ''; cfg.icon = '';
+  try { localStorage.removeItem('achv-icon'); } catch {}
+  save(); syncUI();
+});
+try { const d = localStorage.getItem('achv-icon'); if (d) loadIcon(d); } catch {}
+
+$('sndFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  ensureAudio();
+  try {
+    soundBuf = await actx.decodeAudioData(await f.arrayBuffer());
+    cfg.sndfile = f.name; save(); syncUI(); status(`Som carregado: ${f.name}`, true);
+  } catch { status('Não consegui ler esse arquivo de áudio.'); }
+});
+$('testSnd').addEventListener('click', () => { ensureAudio(); playSound(); });
+
+$('play').addEventListener('click', () => trigger(true));
+canvas.addEventListener('click', () => trigger(true));
+window.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || /INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) return;
+  e.preventDefault(); trigger(true);
+});
+
+$('copyObs').addEventListener('click', async () => {
+  const url = obsLink();
+  try { await navigator.clipboard.writeText(url); status('Link do OBS copiado.', true); }
+  catch { $('obsUrl').select(); document.execCommand('copy'); status('Link do OBS copiado.', true); }
+  if (cfg.snd === 'custom' && !cfg.sndfile) status('Atenção: escolha o nome do arquivo de áudio para o OBS.');
+});
+
+/* ---------------- gravação ---------------- */
+const MIMES = {
+  webm: ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'],
+  mp4: ['video/mp4;codecs="avc1.640028,mp4a.40.2"', 'video/mp4;codecs=avc1,mp4a', 'video/mp4']
+};
+const pickMime = fmt => window.MediaRecorder ? MIMES[fmt].find(m => MediaRecorder.isTypeSupported(m)) : null;
+const mp4Opt = $('c_fmt').querySelector('option[value=mp4]');
+if (!pickMime('mp4')) { mp4Opt.disabled = true; mp4Opt.textContent = 'MP4 (não suportado aqui)'; if (cfg.fmt === 'mp4') cfg.fmt = 'webm'; }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const slug = x => String(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'conquista';
+
+const lockControls = on => document.querySelectorAll('aside input, aside select, aside button, .actions button, .actions select')
+  .forEach(el => { el.disabled = on; });
+
+$('rec').addEventListener('click', async () => {
+  if (recording) return;
+  const mime = pickMime(cfg.fmt);
+  if (!mime || !canvas.captureStream) { status('Este navegador não grava vídeo. Use Chrome ou Edge.'); return; }
+  // Snapshot do que vale para esta gravação: os controles ficam travados até o fim.
+  const area = cfg.area, ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+  const name = `conquista-${cfg.st}-${slug(cfg.title)}${area === 'crop' ? '-recorte' : ''}.${ext}`;
+  const transparentMp4 = cfg.bg === 'transparent' && ext === 'mp4';
+  lockControls(true);
+  recording = true; playing = false; badge.hidden = true;
+  let vstream = null, failed = null;
+  try {
+    ensureAudio();
+    if (!recDest) { recDest = actx.createMediaStreamDestination(); master.connect(recDest); }
+    render(null); // garante W/H/s da configuração atual antes de medir
+    let src = canvas;
+    if (area === 'crop') {
+      const r = cropRect(), ec = document.createElement('canvas');
+      ec.width = r.w; ec.height = r.h;
+      recCrop = { r, ectx: ec.getContext('2d') };
+      src = ec;
+    }
+    vstream = src.captureStream(60);
+    const stream = new MediaStream([...vstream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16e6, audioBitsPerSecond: 192e3 });
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    rec.onerror = e => { failed = e.error || new Error('erro no gravador'); };
+    const done = new Promise(r => { rec.onstop = r; });
+    status('⏺ Gravando… mantenha esta aba visível.');
+    rec.start(250);
+    await wait(300);
+    trigger(true);
+    await wait(cfg.dur * 1000 + 600);
+    if (rec.state !== 'inactive') rec.stop();
+    await done;
+    if (failed) throw failed;
+    if (!chunks.length) throw new Error('nenhum dado gravado');
+    const blob = new Blob(chunks, { type: mime.split(';')[0] });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    status(`Vídeo salvo: ${name} (${(blob.size / 1e6).toFixed(1)} MB)` +
+      (transparentMp4 ? ' — MP4 não guarda transparência; o fundo sai preto.' : ''), true);
+  } catch (err) {
+    status(`Falha na gravação: ${err && err.message ? err.message : err}. Tente WebM ou outro navegador.`);
+  } finally {
+    recording = false; recCrop = null;
+    if (vstream) vstream.getTracks().forEach(t => t.stop());
+    lockControls(false);
+    if (!pickMime('mp4')) mp4Opt.disabled = true;
+    badge.hidden = false;
+  }
+});
+
+syncUI();
+fitPreview();
+window.addEventListener('resize', fitPreview);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
