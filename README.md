@@ -13,7 +13,7 @@ Gera animações de conquista desbloqueada para usar ao vivo no OBS ou exportar 
 - Jogos Mobile, com cartão compacto para vídeos verticais.
 
 ## O que faz
-- Texto, cabeçalho, pontos (G), tipo de troféu, descrição e ícone personalizáveis.
+- Texto, cabeçalho, pontos (G), tipo de troféu e descrição personalizáveis.
 - Sons sintetizados para cada estilo, ou um arquivo de áudio seu.
 - Fundo transparente, preto, verde (chroma key) ou cor livre.
 - Resoluções 16:9 (720p, 1080p, 1440p), vertical 9:16 e quadrada.
@@ -47,6 +47,8 @@ url.search = new URLSearchParams({
 ```
 
 Uma automação que recebe eventos da live pode montar essa URL a cada inscrição, comando ou mensagem selecionada e atualizar a fonte com [Set Browser Source URL](https://docs.streamer.bot/api/sub-actions/obs-studio/sources/set-browser-source-url).
+
+Use o parâmetro `icon` para personalizar a imagem do overlay com uma URL ou um caminho acessível à fonte Navegador do OBS. O editor usa os ícones padrão de cada estilo.
 
 ## Aviso
 Projeto independente e não oficial, sem afiliação com as marcas citadas. As marcas pertencem aos respectivos donos. Os sons são sintetizados.

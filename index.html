@@ -134,12 +134,8 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
 
   <fieldset>
     <legend>Ícone</legend>
-    <div class="row">
-      <input type="file" id="iconFile" accept="image/*">
-      <button class="btn small shrink" id="iconClear">Remover</button>
-    </div>
-    <label for="c_icon">Nome do arquivo de ícone (para o OBS)</label>
-    <input type="text" id="c_icon" data-k="icon" placeholder="ex.: icone.png">
+    <label for="c_icon">URL ou caminho do ícone (para o OBS)</label>
+    <input type="text" id="c_icon" data-k="icon" placeholder="ex.: https://example.com/icone.png">
     <div data-only="xbox">
       <label for="c_accent">Cor do círculo</label>
       <input type="color" id="c_accent" data-k="accent">
@@ -245,7 +241,7 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
       <li>Largura/altura = a resolução escolhida (ex.: <code>1920</code> × <code>1080</code>).</li>
       <li>Marque <b>Controlar áudio via OBS</b> (o som aparece no mixer) e <b>Desativar fonte quando invisível</b>.</li>
       <li><b>Para disparar:</b> ligue o olho 👁 da fonte. Cada vez que ela aparece, a animação toca. Dica: em <b>Configurações → Teclas de atalho</b>, defina um atalho de “Mostrar/Ocultar” para essa fonte.</li>
-      <li>Ícone ou som próprios: coloque os arquivos <b>na mesma pasta deste index.html</b> e digite o nome nos campos “para o OBS”.</li>
+      <li>Para personalizar o ícone no OBS, informe uma URL ou um caminho acessível à fonte Navegador. Para usar seu próprio som, coloque o áudio <b>na mesma pasta deste index.html</b> e informe seu nome no campo de áudio para OBS.</li>
     </ol>
     <textarea id="obsUrl" rows="3" readonly></textarea>
     <p class="hint"><a id="obsOpen" href="#" target="_blank" style="color:var(--acc)">Abrir o modo OBS numa aba</a> para testar (clique na página ou aperte espaço para disparar).</p>
@@ -262,7 +258,7 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
         <tr><td><code>obs</code>, <code>lang</code></td><td><code>obs=1</code> abre o overlay. <code>lang=pt-BR</code> ou <code>en-US</code> escolhe os textos padrão.</td></tr>
         <tr><td><code>st</code>, <code>blockType</code></td><td>Use <code>xbox</code>, <code>ps</code>, <code>steam</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code> ou <code>mobile</code>. No estilo <code>blocks</code>, escolha <code>advancement</code>, <code>goal</code> ou <code>challenge</code>.</td></tr>
         <tr><td><code>title</code>, <code>head</code>, <code>desc</code>, <code>pts</code></td><td>Nome da conquista, cabeçalho, descrição e pontos ou placar. <code>head=</code> usa o cabeçalho do estilo.</td></tr>
-        <tr><td><code>tier</code>, <code>accent</code>, <code>icon</code></td><td>O troféu PlayStation pode ser <code>bronze</code>, <code>silver</code>, <code>gold</code> ou <code>platinum</code>. <code>accent</code> é uma cor hexadecimal, como <code>%23107c10</code>. <code>icon</code> é o endereço ou nome da imagem.</td></tr>
+        <tr><td><code>tier</code>, <code>accent</code>, <code>icon</code></td><td>O troféu PlayStation pode ser <code>bronze</code>, <code>silver</code>, <code>gold</code> ou <code>platinum</code>. <code>accent</code> é uma cor hexadecimal, como <code>%23107c10</code>. <code>icon</code> é uma URL ou um caminho de imagem acessível à fonte Navegador do OBS.</td></tr>
         <tr><td><code>snd</code>, <code>sndfile</code>, <code>vol</code></td><td>Para o som, use <code>auto</code>, <code>chime</code>, <code>bell</code>, <code>pluck</code>, <code>retro</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code>, <code>mobile</code>, <code>custom</code> ou <code>none</code>. Com <code>custom</code>, use <code>sndfile</code> para o arquivo. <code>vol</code> vai de <code>0</code> a <code>1</code>.</td></tr>
         <tr><td><code>dur</code>, <code>delay</code>, <code>repeat</code></td><td>Segundos na tela, atraso inicial e intervalo de repetição. <code>repeat=0</code> desativa a repetição.</td></tr>
         <tr><td><code>pos</code>, <code>scale</code>, <code>res</code></td><td>Posição <code>default</code> (padrão do estilo), <code>center</code> (centro), <code>tc</code>/<code>bc</code> (topo/base centro), <code>tr</code>/<code>br</code> (topo/base direita), <code>tl</code>/<code>bl</code> (topo/base esquerda). <code>scale=1</code> representa 100%. Resolução <code>720</code>, <code>1080</code>, <code>1440</code>, <code>vert</code> (9:16) ou <code>square</code> (1:1).</td></tr>
@@ -382,8 +378,7 @@ const EN_TEXT = [
   ['#c_tier option[value="platinum"]', 'Platinum'],
   ['label[for="c_desc"]', 'Description <small style="color:var(--mute)">(optional)</small>'],
   ['aside fieldset:nth-of-type(3) legend', 'Icon'],
-  ['#iconClear', 'Remove'],
-  ['label[for="c_icon"]', 'Icon filename (for OBS)'],
+  ['label[for="c_icon"]', 'Icon URL or path (for OBS)'],
   ['label[for="c_accent"]', 'Circle color'],
   ['aside fieldset:nth-of-type(4) legend', 'Sound'],
   ['#c_snd option[value="auto"]', 'Automatic (matches style)'],
@@ -429,7 +424,7 @@ const EN_TEXT = [
   ['main details:nth-of-type(1) li:nth-child(2)', 'Set width and height to your chosen resolution (for example, <code>1920</code> × <code>1080</code>).'],
   ['main details:nth-of-type(1) li:nth-child(3)', 'Enable <b>Control audio via OBS</b> (sound appears in the mixer) and <b>Shutdown source when not visible</b>.'],
   ['main details:nth-of-type(1) li:nth-child(4)', '<b>To trigger:</b> show the source with the eye 👁 icon. The animation plays each time it appears. Tip: set a Show/Hide shortcut for this source in <b>Settings → Hotkeys</b>.'],
-  ['main details:nth-of-type(1) li:nth-child(5)', 'For custom icons or sounds, place the files <b>next to this index.html</b> and enter their names in the OBS filename fields.'],
+  ['main details:nth-of-type(1) li:nth-child(5)', 'The icon field accepts an image URL or path accessible to the OBS Browser Source. For a custom sound, place the audio file <b>next to this index.html</b> and enter its name in the OBS audio field.'],
   ['main details:nth-of-type(1) p.hint', '<a id="obsOpen" href="#" target="_blank" style="color:var(--acc)">Open OBS mode in a new tab</a> to test it (click the page or press space to trigger).'],
   ['#obs-parameters summary', 'OBS URL parameters'],
   ['#obs-parameters > p:first-of-type', 'Use <code>obs=1</code> to open only the animation. <b>Copy OBS link</b> already includes the choices made above. You can also build a URL for each alert.'],
@@ -440,7 +435,7 @@ const EN_TEXT = [
   ['#obs-parameters tbody tr:nth-child(1) td:last-child', '<code>obs=1</code> opens the overlay. <code>lang=pt-BR</code> or <code>en-US</code> selects the default language.'],
   ['#obs-parameters tbody tr:nth-child(2) td:last-child', 'Choose <code>xbox</code>, <code>ps</code>, <code>steam</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code> or <code>mobile</code>. For <code>blocks</code>, choose <code>advancement</code>, <code>goal</code> or <code>challenge</code>.'],
   ['#obs-parameters tbody tr:nth-child(3) td:last-child', 'Achievement title, header, description, and points or score. <code>head=</code> uses the style default.'],
-  ['#obs-parameters tbody tr:nth-child(4) td:last-child', 'The PlayStation trophy can be <code>bronze</code>, <code>silver</code>, <code>gold</code> or <code>platinum</code>. <code>accent</code> is a hex color such as <code>%23107c10</code>. <code>icon</code> is an image URL or filename.'],
+  ['#obs-parameters tbody tr:nth-child(4) td:last-child', 'The PlayStation trophy can be <code>bronze</code>, <code>silver</code>, <code>gold</code> or <code>platinum</code>. <code>accent</code> is a hex color such as <code>%23107c10</code>. <code>icon</code> is an image URL or path accessible to the OBS Browser Source.'],
   ['#obs-parameters tbody tr:nth-child(5) td:last-child', 'For sound, use <code>auto</code>, <code>chime</code>, <code>bell</code>, <code>pluck</code>, <code>retro</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code>, <code>mobile</code>, <code>custom</code> or <code>none</code>. With <code>custom</code>, set <code>sndfile</code> to an audio file. <code>vol</code> ranges from <code>0</code> to <code>1</code>.'],
   ['#obs-parameters tbody tr:nth-child(6) td:last-child', 'Seconds on screen, initial delay, and repeat interval. <code>repeat=0</code> turns repetition off.'],
   ['#obs-parameters tbody tr:nth-child(7) td:last-child', 'Position <code>default</code> (style default), <code>center</code> (center), <code>tc</code>/<code>bc</code> (top/bottom center), <code>tr</code>/<code>br</code> (top/bottom right), <code>tl</code>/<code>bl</code> (top/bottom left). <code>scale=1</code> means 100%. Resolution <code>720</code>, <code>1080</code>, <code>1440</code>, <code>vert</code> (9:16) or <code>square</code> (1:1).'],
@@ -481,7 +476,7 @@ function translateUI() {
   });
   $('cv').title = tr('Clique para disparar', 'Click to trigger');
   $('c_area').title = tr('Área exportada', 'Export area');
-  $('c_icon').placeholder = tr('ex.: icone.png', 'e.g. icon.png');
+  $('c_icon').placeholder = tr('ex.: https://example.com/icone.png', 'e.g. https://example.com/icon.png');
   $('c_sndfile').placeholder = tr('ex.: som.mp3', 'e.g. sound.mp3');
   $('github').setAttribute('aria-label', tr('Código-fonte no GitHub', 'Source code on GitHub'));
   const mp4Option = $('c_fmt').querySelector('option[value="mp4"]');
@@ -1278,27 +1273,6 @@ document.querySelectorAll('[data-style]').forEach(b => b.addEventListener('click
   cfg.st = b.dataset.style; cfg.dur = DEFAULT_DUR[cfg.st];
   save(); syncUI(); trigger(true);
 }));
-
-function loadIcon(src) {
-  if (!src) { iconImg = null; return; }
-  const im = new Image(); im.onload = () => { iconImg = im; }; im.src = src;
-}
-$('iconFile').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => {
-    loadIcon(r.result);
-    try { localStorage.setItem('achv-icon', r.result); } catch {}
-    cfg.icon = f.name; save(); syncUI();
-  };
-  r.readAsDataURL(f);
-});
-$('iconClear').addEventListener('click', () => {
-  iconImg = null; $('iconFile').value = ''; cfg.icon = '';
-  try { localStorage.removeItem('achv-icon'); } catch {}
-  save(); syncUI();
-});
-try { const d = localStorage.getItem('achv-icon'); if (d) loadIcon(d); } catch {}
 
 $('sndFile').addEventListener('change', async e => {
   const f = e.target.files[0]; if (!f) return;
