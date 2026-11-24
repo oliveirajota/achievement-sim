@@ -63,6 +63,13 @@ details{background:var(--panel);border:1px solid var(--line);border-radius:12px;
 summary{cursor:pointer;font-weight:600}
 details ol{padding-left:20px;margin:10px 0}
 details li{margin:6px 0;color:#c9cdd4}
+details a{color:var(--acc)}
+.help-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.help-table th,.help-table td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.help-table th{color:var(--mute);font-weight:600}
+.help-table code{white-space:nowrap}
+.help-url{display:block;overflow-wrap:anywhere;line-height:1.6;padding:8px}
+#streamer-bot code{overflow-wrap:anywhere}
 textarea{width:100%;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px ui-monospace,Consolas,monospace;resize:vertical}
 code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
 [hidden]{display:none!important}
@@ -235,7 +242,7 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
     <ol>
       <li>No OBS: <b>Fontes → + → Navegador</b>. Desmarque <b>Arquivo local</b> e cole o link abaixo no campo <b>URL</b>.</li>
       <li>Largura/altura = a resolução escolhida (ex.: <code>1920</code> × <code>1080</code>).</li>
-      <li>Marque <b>Controlar áudio via OBS</b> (o som aparece no mixer) e <b>Desligar a fonte quando não estiver visível</b>.</li>
+      <li>Marque <b>Controlar áudio via OBS</b> (o som aparece no mixer) e <b>Desativar fonte quando invisível</b>.</li>
       <li><b>Para disparar:</b> ligue o olho 👁 da fonte. Cada vez que ela aparece, a animação toca. Dica: em <b>Configurações → Teclas de atalho</b>, defina um atalho de “Mostrar/Ocultar” para essa fonte.</li>
       <li>Ícone ou som próprios: coloque os arquivos <b>na mesma pasta deste index.html</b> e digite o nome nos campos “para o OBS”.</li>
     </ol>
@@ -243,7 +250,39 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
     <p class="hint"><a id="obsOpen" href="#" target="_blank" style="color:var(--acc)">Abrir o modo OBS numa aba</a> para testar (clique na página ou aperte espaço para disparar).</p>
   </details>
 
-  <details>
+  <details id="obs-parameters">
+    <summary>Parâmetros da URL do OBS</summary>
+    <p>Use <code>obs=1</code> para abrir apenas a animação. O botão <b>Copiar link do OBS</b> já inclui as escolhas feitas acima. Você também pode montar a URL para cada alerta.</p>
+    <p id="obs-parameter-example">Experimente este link com nome e mensagem.<a class="help-url" href="https://achievement.easypress.app/?obs=1&amp;lang=pt-BR&amp;st=ps&amp;title=Jo%C3%A3o%20%26%20Lu%C3%ADsa&amp;head=Inscrito%20no%20canal%21" target="_blank" rel="noopener noreferrer">https://achievement.easypress.app/?obs=1&amp;lang=pt-BR&amp;st=ps&amp;title=Jo%C3%A3o%20%26%20Lu%C3%ADsa&amp;head=Inscrito%20no%20canal%21</a></p>
+    <p class="hint">Codifique nomes e mensagens com <code>URLSearchParams</code> ou <code>encodeURIComponent</code> antes de adicioná-los à URL. Por exemplo, <code>João &amp; Luísa</code> vira <code>Jo%C3%A3o%20%26%20Lu%C3%ADsa</code>.</p>
+    <table class="help-table">
+      <thead><tr><th scope="col">Parâmetro</th><th scope="col">Valor</th></tr></thead>
+      <tbody>
+        <tr><td><code>obs</code>, <code>lang</code></td><td><code>obs=1</code> abre o overlay. <code>lang=pt-BR</code> ou <code>en-US</code> escolhe os textos padrão.</td></tr>
+        <tr><td><code>st</code>, <code>blockType</code></td><td>Use <code>xbox</code>, <code>ps</code>, <code>steam</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code> ou <code>mobile</code>. No estilo <code>blocks</code>, escolha <code>advancement</code>, <code>goal</code> ou <code>challenge</code>.</td></tr>
+        <tr><td><code>title</code>, <code>head</code>, <code>desc</code>, <code>pts</code></td><td>Nome da conquista, cabeçalho, descrição e pontos ou placar. <code>head=</code> usa o cabeçalho do estilo.</td></tr>
+        <tr><td><code>tier</code>, <code>accent</code>, <code>icon</code></td><td>O troféu PlayStation pode ser <code>bronze</code>, <code>silver</code>, <code>gold</code> ou <code>platinum</code>. <code>accent</code> é uma cor hexadecimal, como <code>%23107c10</code>. <code>icon</code> é o endereço ou nome da imagem.</td></tr>
+        <tr><td><code>snd</code>, <code>sndfile</code>, <code>vol</code></td><td>Para o som, use <code>auto</code>, <code>chime</code>, <code>bell</code>, <code>pluck</code>, <code>retro</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code>, <code>mobile</code>, <code>custom</code> ou <code>none</code>. Com <code>custom</code>, use <code>sndfile</code> para o arquivo. <code>vol</code> vai de <code>0</code> a <code>1</code>.</td></tr>
+        <tr><td><code>dur</code>, <code>delay</code>, <code>repeat</code></td><td>Segundos na tela, atraso inicial e intervalo de repetição. <code>repeat=0</code> desativa a repetição.</td></tr>
+        <tr><td><code>pos</code>, <code>scale</code>, <code>res</code></td><td>Posição <code>default</code> (padrão do estilo), <code>center</code> (centro), <code>tc</code>/<code>bc</code> (topo/base centro), <code>tr</code>/<code>br</code> (topo/base direita), <code>tl</code>/<code>bl</code> (topo/base esquerda). <code>scale=1</code> representa 100%. Resolução <code>720</code>, <code>1080</code>, <code>1440</code>, <code>vert</code> (9:16) ou <code>square</code> (1:1).</td></tr>
+        <tr><td><code>bg</code>, <code>bgc</code></td><td>Fundo <code>transparent</code>, <code>black</code>, <code>green</code> ou <code>custom</code>. Com <code>custom</code>, defina a cor hexadecimal em <code>bgc</code>.</td></tr>
+      </tbody>
+    </table>
+  </details>
+
+  <details id="streamer-bot">
+    <summary>Disparar alertas com Streamer.bot</summary>
+    <ol>
+      <li>Deixe uma Fonte Navegador visível no OBS com <b>Arquivo local</b> desmarcado e a URL deste site com <code>obs=1</code>. <a href="https://streamer.bot/downloads" target="_blank" rel="noopener noreferrer">Baixar o Streamer.bot</a>.</li>
+      <li>No OBS, abra <b>Ferramentas → Configurações do servidor WebSocket</b>, ative o servidor e configure uma senha. No Streamer.bot, abra <b>Stream Apps → OBS</b> e conecte com o mesmo host, porta e senha. No mesmo computador, use <code>127.0.0.1</code> e a porta configurada no OBS (normalmente <code>4455</code>). <a href="https://docs.streamer.bot/guide/stream-apps/obs-studio" target="_blank" rel="noopener noreferrer">Guia de conexão</a>.</li>
+      <li>Conecte a conta do canal em <b>Platforms → Twitch → Accounts</b>. Crie uma ação com o evento <b>Twitch → Channel → Follow</b>. Adicione a subação <b>OBS Studio → Sources → Set Browser Source URL</b> e escolha a cena e a Fonte Navegador. <a href="https://docs.streamer.bot/api/sub-actions/obs-studio/sources/set-browser-source-url" target="_blank" rel="noopener noreferrer">Campos da subação</a>.</li>
+      <li>No campo <b>URL</b>, teste primeiro o endereço abaixo.<code class="help-url">https://achievement.easypress.app/?obs=1&amp;st=ps&amp;title=Ana&amp;head=Novo+seguidor</code>Clique com o botão direito no evento e escolha <b>Test Trigger</b> para disparar a ação sem esperar um novo seguidor. <a href="https://docs.streamer.bot/guide/core/triggers#testing" target="_blank" rel="noopener noreferrer">Teste de eventos</a>.</li>
+      <li>Depois use este endereço com o nome do seguidor.<code class="help-url">https://achievement.easypress.app/?obs=1&amp;st=ps&amp;title=%userName%&amp;head=Novo+seguidor&amp;event=%runningActionId%</code><code>%userName%</code> insere o login da pessoa. <code>%runningActionId%</code> muda a URL a cada evento para repetir o alerta. O overlay ignora <code>event</code> e toca uma vez ao carregar.</li>
+    </ol>
+    <p class="hint">Para tocar manualmente, atualize a fonte ou desligue e ligue seu ícone de olho. Nomes completos e mensagens com espaços, acentos ou <code>&amp;</code> precisam de codificação de URL. O Streamer.bot e a conexão com o OBS são configurados no seu computador.</p>
+  </details>
+
+  <details id="export-video">
     <summary>Exportar vídeo para redes sociais</summary>
     <ol>
       <li>Use Chrome ou Edge e mantenha esta aba visível durante a gravação (dura alguns segundos).</li>
@@ -390,12 +429,33 @@ const EN_TEXT = [
   ['main details:nth-of-type(1) li:nth-child(4)', '<b>To trigger:</b> show the source with the eye 👁 icon. The animation plays each time it appears. Tip: set a Show/Hide shortcut for this source in <b>Settings → Hotkeys</b>.'],
   ['main details:nth-of-type(1) li:nth-child(5)', 'For custom icons or sounds, place the files <b>next to this index.html</b> and enter their names in the OBS filename fields.'],
   ['main details:nth-of-type(1) p.hint', '<a id="obsOpen" href="#" target="_blank" style="color:var(--acc)">Open OBS mode in a new tab</a> to test it (click the page or press space to trigger).'],
-  ['main details:nth-of-type(2) summary', 'Export video for social media'],
-  ['main details:nth-of-type(2) li:nth-child(1)', 'Use Chrome or Edge and keep this tab visible while recording (it takes a few seconds).'],
-  ['main details:nth-of-type(2) li:nth-child(2)', 'For TikTok/Reels/Shorts/YouTube, use a <b>Black</b> or <b>Green (chroma)</b> background. These platforms do not support transparency. You can remove the green in an editor such as CapCut, Premiere, or DaVinci.'],
-  ['main details:nth-of-type(2) li:nth-child(3)', '<b>Transparent</b> works best in WebM and depends on the browser recording an alpha channel. If the result has a black background, use green instead.'],
-  ['main details:nth-of-type(2) li:nth-child(4)', 'MP4 is available only if your browser can record it. Otherwise, record WebM.'],
-  ['main details:nth-of-type(2) li:nth-child(5)', '<b>Achievement only (crop):</b> records the popup area (outlined in the preview) with room for its shadow and glow. Use it as a layer in CapCut/Premiere/DaVinci: record <b>transparent WebM</b> or green and position it as needed.']
+  ['#obs-parameters summary', 'OBS URL parameters'],
+  ['#obs-parameters > p:first-of-type', 'Use <code>obs=1</code> to open only the animation. <b>Copy OBS link</b> already includes the choices made above. You can also build a URL for each alert.'],
+  ['#obs-parameter-example', 'Try this link with a name and message.<a class="help-url" href="https://achievement.easypress.app/?obs=1&amp;lang=en-US&amp;st=ps&amp;title=Jo%C3%A3o%20%26%20Lu%C3%ADsa&amp;head=New%20subscriber%21" target="_blank" rel="noopener noreferrer">https://achievement.easypress.app/?obs=1&amp;lang=en-US&amp;st=ps&amp;title=Jo%C3%A3o%20%26%20Lu%C3%ADsa&amp;head=New%20subscriber%21</a>'],
+  ['#obs-parameters > p.hint', 'Encode names and messages with <code>URLSearchParams</code> or <code>encodeURIComponent</code> before adding them to the URL. For example, <code>João &amp; Luísa</code> becomes <code>Jo%C3%A3o%20%26%20Lu%C3%ADsa</code>.'],
+  ['#obs-parameters th:first-child', 'Parameter'],
+  ['#obs-parameters th:last-child', 'Value'],
+  ['#obs-parameters tbody tr:nth-child(1) td:last-child', '<code>obs=1</code> opens the overlay. <code>lang=pt-BR</code> or <code>en-US</code> selects the default language.'],
+  ['#obs-parameters tbody tr:nth-child(2) td:last-child', 'Choose <code>xbox</code>, <code>ps</code>, <code>steam</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code> or <code>mobile</code>. For <code>blocks</code>, choose <code>advancement</code>, <code>goal</code> or <code>challenge</code>.'],
+  ['#obs-parameters tbody tr:nth-child(3) td:last-child', 'Achievement title, header, description, and points or score. <code>head=</code> uses the style default.'],
+  ['#obs-parameters tbody tr:nth-child(4) td:last-child', 'The PlayStation trophy can be <code>bronze</code>, <code>silver</code>, <code>gold</code> or <code>platinum</code>. <code>accent</code> is a hex color such as <code>%23107c10</code>. <code>icon</code> is an image URL or filename.'],
+  ['#obs-parameters tbody tr:nth-child(5) td:last-child', 'For sound, use <code>auto</code>, <code>chime</code>, <code>bell</code>, <code>pluck</code>, <code>retro</code>, <code>blocks</code>, <code>badge</code>, <code>arcade</code>, <code>mobile</code>, <code>custom</code> or <code>none</code>. With <code>custom</code>, set <code>sndfile</code> to an audio file. <code>vol</code> ranges from <code>0</code> to <code>1</code>.'],
+  ['#obs-parameters tbody tr:nth-child(6) td:last-child', 'Seconds on screen, initial delay, and repeat interval. <code>repeat=0</code> turns repetition off.'],
+  ['#obs-parameters tbody tr:nth-child(7) td:last-child', 'Position <code>default</code> (style default), <code>center</code> (center), <code>tc</code>/<code>bc</code> (top/bottom center), <code>tr</code>/<code>br</code> (top/bottom right), <code>tl</code>/<code>bl</code> (top/bottom left). <code>scale=1</code> means 100%. Resolution <code>720</code>, <code>1080</code>, <code>1440</code>, <code>vert</code> (9:16) or <code>square</code> (1:1).'],
+  ['#obs-parameters tbody tr:nth-child(8) td:last-child', 'Background <code>transparent</code>, <code>black</code>, <code>green</code> or <code>custom</code>. With <code>custom</code>, set the hex color in <code>bgc</code>.'],
+  ['#streamer-bot summary', 'Trigger alerts with Streamer.bot'],
+  ['#streamer-bot li:nth-child(1)', 'Keep a visible Browser Source in OBS with <b>Local file</b> off and this site’s URL with <code>obs=1</code>. <a href="https://streamer.bot/downloads" target="_blank" rel="noopener noreferrer">Download Streamer.bot</a>.'],
+  ['#streamer-bot li:nth-child(2)', 'In OBS, open <b>Tools → WebSocket Server Settings</b>, enable the server, and set a password. In Streamer.bot, open <b>Stream Apps → OBS</b> and connect using the same host, port, and password. On the same computer, use <code>127.0.0.1</code> and the port configured in OBS (usually <code>4455</code>). <a href="https://docs.streamer.bot/guide/stream-apps/obs-studio" target="_blank" rel="noopener noreferrer">Connection guide</a>.'],
+  ['#streamer-bot li:nth-child(3)', 'Connect your channel account under <b>Platforms → Twitch → Accounts</b>. Create an action with the <b>Twitch → Channel → Follow</b> trigger. Add <b>OBS Studio → Sources → Set Browser Source URL</b> and choose the scene and Browser Source. <a href="https://docs.streamer.bot/api/sub-actions/obs-studio/sources/set-browser-source-url" target="_blank" rel="noopener noreferrer">Action fields</a>.'],
+  ['#streamer-bot li:nth-child(4)', 'In the <b>URL</b> field, first test the address below.<code class="help-url">https://achievement.easypress.app/?obs=1&amp;st=ps&amp;title=Ana&amp;head=New+follower</code>Right-click the trigger and choose <b>Test Trigger</b> to run the action without waiting for a follower. <a href="https://docs.streamer.bot/guide/core/triggers#testing" target="_blank" rel="noopener noreferrer">Trigger testing</a>.'],
+  ['#streamer-bot li:nth-child(5)', 'Then use this address with the follower’s name.<code class="help-url">https://achievement.easypress.app/?obs=1&amp;st=ps&amp;title=%userName%&amp;head=New+follower&amp;event=%runningActionId%</code><code>%userName%</code> inserts the follower’s login. <code>%runningActionId%</code> changes the URL for each event so the alert can repeat. The overlay ignores <code>event</code> and plays once when loaded.'],
+  ['#streamer-bot p.hint', 'For a manual replay, refresh the source or hide and show it. Full names and messages with spaces, accents, or <code>&amp;</code> need URL encoding. Streamer.bot and the OBS connection are configured on your computer.'],
+  ['#export-video summary', 'Export video for social media'],
+  ['#export-video li:nth-child(1)', 'Use Chrome or Edge and keep this tab visible while recording (it takes a few seconds).'],
+  ['#export-video li:nth-child(2)', 'For TikTok/Reels/Shorts/YouTube, use a <b>Black</b> or <b>Green (chroma)</b> background. These platforms do not support transparency. You can remove the green in an editor such as CapCut, Premiere, or DaVinci.'],
+  ['#export-video li:nth-child(3)', '<b>Transparent</b> works best in WebM and depends on the browser recording an alpha channel. If the result has a black background, use green instead.'],
+  ['#export-video li:nth-child(4)', 'MP4 is available only if your browser can record it. Otherwise, record WebM.'],
+  ['#export-video li:nth-child(5)', '<b>Achievement only (crop):</b> records the popup area (outlined in the preview) with room for its shadow and glow. Use it as a layer in CapCut/Premiere/DaVinci: record <b>transparent WebM</b> or green and position it as needed.']
 ];
 const PT_TEXT = EN_TEXT.map(([selector]) => document.querySelector(selector).innerHTML);
 function translateUI() {
