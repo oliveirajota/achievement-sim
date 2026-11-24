@@ -1,6 +1,6 @@
 # Simulador de Conquistas
 
-Gera animações de conquista desbloqueada com som para usar ao vivo no OBS ou exportar como vídeo. A interface está disponível em português do Brasil e inglês dos EUA.
+Gera animações de conquista desbloqueada para usar ao vivo no OBS ou exportar como vídeo ou GIF. A interface está disponível em português do Brasil e inglês dos EUA.
 
 **Online:** https://achievement.easypress.app
 
@@ -18,10 +18,11 @@ Gera animações de conquista desbloqueada com som para usar ao vivo no OBS ou e
 - Fundo transparente, preto, verde (chroma key) ou cor livre.
 - Resoluções 16:9 (720p, 1080p, 1440p), vertical 9:16 e quadrada.
 - **Exportação de vídeo** (MP4 ou WebM). Por padrão exporta só a área da conquista; também pode exportar a tela inteira. WebM mantém a transparência.
+- **GIF animado** em recorte ou tela inteira, com repetição contínua. O GIF é silencioso, é exportado a 20 quadros por segundo e tem até 960 pixels no lado maior. Com fundo transparente, cada pixel fica transparente ou opaco.
 - **Modo OBS:** um link com os parâmetros e o idioma para usar numa fonte Navegador. A animação toca quando a fonte fica visível.
 
 ## Como funciona
-É um único arquivo `index.html`, sem dependências e sem backend. Animação (canvas 2D), som (Web Audio) e gravação (MediaRecorder) rodam no navegador. Nada é enviado ao servidor.
+É um único arquivo `index.html`, sem dependências e sem backend. A animação, o som e a exportação de vídeo e GIF rodam no navegador. Nada é enviado ao servidor.
 
 Testado no Chrome/Chromium. O Firefox deve gravar apenas WebM.
 

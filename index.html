@@ -232,6 +232,7 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
     <select id="c_fmt" data-k="fmt">
       <option value="mp4">MP4</option>
       <option value="webm">WebM</option>
+      <option value="gif">GIF</option>
     </select>
     <button class="btn" id="copyObs">🔗 Copiar link do OBS</button>
   </div>
@@ -283,12 +284,13 @@ code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:12px}
   </details>
 
   <details id="export-video">
-    <summary>Exportar vídeo para redes sociais</summary>
+    <summary>Exportar vídeo e GIF</summary>
     <ol>
       <li>Use Chrome ou Edge e mantenha esta aba visível durante a gravação (dura alguns segundos).</li>
       <li>Para TikTok/Reels/Shorts/YouTube, use fundo <b>Preto</b> ou <b>Verde (chroma)</b> — essas plataformas não aceitam transparência. O verde dá para recortar em qualquer editor (CapCut, Premiere, DaVinci).</li>
-      <li><b>Transparente</b> só faz sentido em WebM, e depende do navegador gravar o canal alfa. Se o resultado vier com fundo preto, use o verde.</li>
+      <li>Para vídeo com fundo <b>transparente</b>, use WebM se o navegador gravar o canal alfa. Se o resultado vier com fundo preto, use o verde.</li>
       <li>MP4 só aparece se o navegador suportar gravar nesse formato; senão, grave em WebM.</li>
+      <li>GIF animado salva sem áudio, com até 960 px no maior lado e 20 quadros por segundo. A transparência é binária, então bordas suaves podem perder detalhe.</li>
       <li><b>Só a conquista (recorte):</b> grava apenas a área do popup (a linha tracejada na prévia), com folga para sombra e brilho. Bom para usar como camada no CapCut/Premiere/DaVinci: grave em <b>WebM transparente</b> ou em verde e posicione onde quiser.</li>
     </ol>
   </details>
@@ -450,12 +452,13 @@ const EN_TEXT = [
   ['#streamer-bot li:nth-child(4)', 'In the <b>URL</b> field, first test the address below.<code class="help-url">https://achievement.easypress.app/?obs=1&amp;st=ps&amp;title=Ana&amp;head=New+follower</code>Right-click the trigger and choose <b>Test Trigger</b> to run the action without waiting for a follower. <a href="https://docs.streamer.bot/guide/core/triggers#testing" target="_blank" rel="noopener noreferrer">Trigger testing</a>.'],
   ['#streamer-bot li:nth-child(5)', 'Then use this address with the follower’s name.<code class="help-url">https://achievement.easypress.app/?obs=1&amp;st=ps&amp;title=%userName%&amp;head=New+follower&amp;event=%runningActionId%</code><code>%userName%</code> inserts the follower’s login. <code>%runningActionId%</code> changes the URL for each event so the alert can repeat. The overlay ignores <code>event</code> and plays once when loaded.'],
   ['#streamer-bot p.hint', 'For a manual replay, refresh the source or hide and show it. Full names and messages with spaces, accents, or <code>&amp;</code> need URL encoding. Streamer.bot and the OBS connection are configured on your computer.'],
-  ['#export-video summary', 'Export video for social media'],
+  ['#export-video summary', 'Export video and GIF'],
   ['#export-video li:nth-child(1)', 'Use Chrome or Edge and keep this tab visible while recording (it takes a few seconds).'],
   ['#export-video li:nth-child(2)', 'For TikTok/Reels/Shorts/YouTube, use a <b>Black</b> or <b>Green (chroma)</b> background. These platforms do not support transparency. You can remove the green in an editor such as CapCut, Premiere, or DaVinci.'],
-  ['#export-video li:nth-child(3)', '<b>Transparent</b> works best in WebM and depends on the browser recording an alpha channel. If the result has a black background, use green instead.'],
+  ['#export-video li:nth-child(3)', 'For video with a <b>transparent</b> background, use WebM if your browser can record an alpha channel. If the result has a black background, use green.'],
   ['#export-video li:nth-child(4)', 'MP4 is available only if your browser can record it. Otherwise, record WebM.'],
-  ['#export-video li:nth-child(5)', '<b>Achievement only (crop):</b> records the popup area (outlined in the preview) with room for its shadow and glow. Use it as a layer in CapCut/Premiere/DaVinci: record <b>transparent WebM</b> or green and position it as needed.']
+  ['#export-video li:nth-child(5)', 'Animated GIF saves without audio, at up to 960 px on the longest side and 20 frames per second. Transparency is binary, so soft edges may lose detail.'],
+  ['#export-video li:nth-child(6)', '<b>Achievement only (crop):</b> records the popup area (outlined in the preview) with room for its shadow and glow. Use it as a layer in CapCut/Premiere/DaVinci: record <b>transparent WebM</b> or green and position it as needed.']
 ];
 const PT_TEXT = EN_TEXT.map(([selector]) => document.querySelector(selector).innerHTML);
 function translateUI() {
@@ -1148,9 +1151,9 @@ function playSound() {
 }
 
 /* ---------------- loop de animação ---------------- */
-let playing = false, t0 = 0, recording = false;
+let playing = false, t0 = 0, recording = false, exportingGif = false;
 function trigger(force = true) {
-  if (!force && playing) return;
+  if (exportingGif || (!force && playing)) return;
   playing = true; t0 = performance.now();
   playSound();
   if (badge) badge.hidden = true;
@@ -1185,6 +1188,7 @@ function drawCropGuide() {
 }
 function frame(now) {
   requestAnimationFrame(frame);
+  if (exportingGif) return;
   let t = null;
   if (playing) {
     t = (now - t0) / 1000;
@@ -1241,6 +1245,7 @@ function syncUI() {
   document.querySelectorAll('[data-style]').forEach(b => b.setAttribute('aria-pressed', b.dataset.style === cfg.st));
   document.querySelectorAll('[data-only]').forEach(el => el.hidden = !el.dataset.only.split(' ').includes(cfg.st));
   $('c_head').placeholder = achievementHeader();
+  $('rec').textContent = cfg.fmt === 'gif' ? tr('⬇ Salvar GIF', '⬇ Save GIF') : tr('⏺ Gravar vídeo', '⏺ Record video');
   $('pointsLabel').innerHTML = cfg.st === 'arcade'
     ? tr('Pontuação <small style="color:var(--mute)">— vazio para esconder</small>', 'Score <small style="color:var(--mute)">— leave empty to hide</small>')
     : tr('Pontos (G) <small style="color:var(--mute)">— vazio para esconder</small>', 'Points (G) <small style="color:var(--mute)">— leave empty to hide</small>');
@@ -1319,6 +1324,137 @@ $('copyObs').addEventListener('click', async () => {
   if (cfg.snd === 'custom' && !cfg.sndfile) status(tr('Atenção: escolha o nome do arquivo de áudio para o OBS.', 'Choose an audio filename for OBS.'));
 });
 
+/* GIF89a encoder for canvas frames. Each frame uses the full canvas and its own delay. */
+function createGifEncoder(width, height, { transparent = false } = {}) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 960 || height > 960) {
+    throw new RangeError('GIF dimensions must be between 1 and 960 pixels');
+  }
+
+  const parts = [];
+  const word = value => [value & 255, value >> 8 & 255];
+  const header = Uint8Array.from([...new TextEncoder().encode('GIF89a'), ...word(width), ...word(height), 0xf7, 255, 0]);
+  parts.push(header);
+
+  // 6 × 6 × 7 colors cover the dark panels, accents, and bright text. Index 255 is transparent.
+  const palette = new Uint8Array(256 * 3);
+  for (let red = 0; red < 6; red++) {
+    for (let green = 0; green < 6; green++) {
+      for (let blue = 0; blue < 7; blue++) {
+        const index = (red * 6 + green) * 7 + blue;
+        palette[index * 3] = Math.round(red * 255 / 5);
+        palette[index * 3 + 1] = Math.round(green * 255 / 5);
+        palette[index * 3 + 2] = Math.round(blue * 255 / 6);
+      }
+    }
+  }
+  parts.push(palette);
+  // NETSCAPE loop count zero repeats indefinitely.
+  parts.push(Uint8Array.from([0x21, 0xff, 11, ...new TextEncoder().encode('NETSCAPE2.0'), 3, 1, 0, 0, 0]));
+
+  let frames = 0;
+  let finished = false;
+
+  function writeLzw(indices) {
+    const dictionary = new Map();
+    let nextCode = 258;
+    let codeSize = 9;
+    let bits = 0;
+    let bitCount = 0;
+    let block = new Uint8Array(256);
+    let used = 0;
+
+    function emitByte(byte) {
+      block[++used] = byte;
+      if (used === 255) {
+        block[0] = 255;
+        parts.push(block);
+        block = new Uint8Array(256);
+        used = 0;
+      }
+    }
+    function emitCode(code) {
+      bits |= code << bitCount;
+      bitCount += codeSize;
+      while (bitCount >= 8) {
+        emitByte(bits & 255);
+        bits >>>= 8;
+        bitCount -= 8;
+      }
+    }
+
+    emitCode(256); // Clear dictionary.
+    let prefix = indices[0];
+    for (let position = 1; position < indices.length; position++) {
+      const symbol = indices[position];
+      const key = prefix * 256 + symbol;
+      const match = dictionary.get(key);
+      if (match !== undefined) {
+        prefix = match;
+        continue;
+      }
+      emitCode(prefix);
+      if (nextCode < 4096) {
+        dictionary.set(key, nextCode++);
+        // The decoder adds this entry after reading the following code.
+        if (nextCode > (1 << codeSize) && codeSize < 12) codeSize++;
+      } else {
+        emitCode(256);
+        dictionary.clear();
+        nextCode = 258;
+        codeSize = 9;
+      }
+      prefix = symbol;
+    }
+    emitCode(prefix);
+    // The decoder catches up on the final phrase before reading End.
+    if (nextCode === (1 << codeSize) && codeSize < 12) codeSize++;
+    emitCode(257); // End image data.
+    if (bitCount > 0) emitByte(bits & 255);
+    if (used > 0) {
+      block[0] = used;
+      parts.push(block.slice(0, used + 1));
+    }
+    parts.push(Uint8Array.of(0));
+  }
+
+  function addFrame(rgba, delay) {
+    if (finished) throw new Error('GIF is already finished');
+    if (frames >= 240) throw new RangeError('GIF cannot contain more than 240 frames');
+    if (!(rgba instanceof Uint8ClampedArray) || rgba.length !== width * height * 4) {
+      throw new TypeError('Expected RGBA canvas data for the full GIF dimensions');
+    }
+    if (!Number.isInteger(delay) || delay < 1 || delay > 65535) throw new RangeError('GIF delay must be in centiseconds');
+
+    const pixels = new Uint8Array(width * height);
+    for (let pixel = 0, offset = 0; pixel < pixels.length; pixel++, offset += 4) {
+      if (transparent && rgba[offset + 3] < 128) {
+        pixels[pixel] = 255;
+        continue;
+      }
+      const red = Math.min(5, Math.round(rgba[offset] * 5 / 255));
+      const green = Math.min(5, Math.round(rgba[offset + 1] * 5 / 255));
+      const blue = Math.min(6, Math.round(rgba[offset + 2] * 6 / 255));
+      pixels[pixel] = (red * 6 + green) * 7 + blue;
+    }
+
+    // Disposal 2 clears the previous full frame before drawing the next one.
+    parts.push(Uint8Array.from([0x21, 0xf9, 4, 0x08 | Number(transparent), ...word(delay), 255, 0]));
+    parts.push(Uint8Array.from([0x2c, 0, 0, 0, 0, ...word(width), ...word(height), 0, 8]));
+    writeLzw(pixels);
+    frames++;
+  }
+
+  function finish() {
+    if (finished) throw new Error('GIF is already finished');
+    if (!frames) throw new Error('GIF needs at least one frame');
+    finished = true;
+    parts.push(Uint8Array.of(0x3b));
+    return new Blob(parts, { type: 'image/gif' });
+  }
+
+  return { addFrame, finish };
+}
+
 /* ---------------- gravação ---------------- */
 const MIMES = {
   webm: ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'],
@@ -1333,13 +1469,76 @@ const slug = x => String(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase
 const lockControls = on => document.querySelectorAll('aside input, aside select, aside button, .actions button, .actions select')
   .forEach(el => { el.disabled = on; });
 
+function exportName(extension) {
+  const area = cfg.area === 'crop' ? tr('-recorte', '-crop') : '';
+  return `${tr('conquista', 'achievement')}-${cfg.st}-${slug(cfg.title)}${area}.${extension}`;
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function exportGif() {
+  const name = exportName('gif');
+  recording = true;
+  exportingGif = true;
+  playing = false;
+  badge.hidden = true;
+  lockControls(true);
+  try {
+    render(null);
+    const rect = cfg.area === 'crop' ? cropRect() : { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    const ratio = Math.min(1, 960 / Math.max(rect.w, rect.h));
+    const width = Math.max(1, Math.round(rect.w * ratio));
+    const height = Math.max(1, Math.round(rect.h * ratio));
+    const frameCanvas = document.createElement('canvas');
+    frameCanvas.width = width;
+    frameCanvas.height = height;
+    const frameContext = frameCanvas.getContext('2d', { willReadFrequently: true });
+    const encoder = createGifEncoder(width, height, { transparent: cfg.bg === 'transparent' });
+    const frames = Math.min(240, Math.ceil(cfg.dur * 20));
+    status(tr('Criando GIF…', 'Creating GIF…'));
+    await wait(0);
+    for (let index = 0; index < frames; index++) {
+      render(index / 20);
+      frameContext.clearRect(0, 0, width, height);
+      frameContext.drawImage(canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, width, height);
+      encoder.addFrame(frameContext.getImageData(0, 0, width, height).data, 5);
+      if (index % 5 === 4) {
+        status(`${tr('Criando GIF', 'Creating GIF')}… ${Math.round((index + 1) / frames * 100)}%`);
+        await wait(0);
+      }
+    }
+    const blob = encoder.finish();
+    downloadBlob(blob, name);
+    status(`${tr('GIF salvo', 'GIF saved')}: ${name} (${(blob.size / 1e6).toFixed(1)} MB)`, true);
+  } catch (error) {
+    status(`${tr('Falha ao salvar GIF', 'GIF export failed')}: ${error && error.message ? error.message : error}`);
+  } finally {
+    exportingGif = false;
+    recording = false;
+    lockControls(false);
+    if (!pickMime('mp4')) mp4Opt.disabled = true;
+    badge.hidden = false;
+    render(null);
+  }
+}
+
 $('rec').addEventListener('click', async () => {
   if (recording) return;
+  if (cfg.fmt === 'gif') { await exportGif(); return; }
   const mime = pickMime(cfg.fmt);
   if (!mime || !canvas.captureStream) { status(tr('Este navegador não grava vídeo. Use Chrome ou Edge.', 'This browser cannot record video. Use Chrome or Edge.')); return; }
   // Snapshot do que vale para esta gravação: os controles ficam travados até o fim.
   const area = cfg.area, ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  const name = `${tr('conquista', 'achievement')}-${cfg.st}-${slug(cfg.title)}${area === 'crop' ? tr('-recorte', '-crop') : ''}.${ext}`;
+  const name = exportName(ext);
   const transparentMp4 = cfg.bg === 'transparent' && ext === 'mp4';
   lockControls(true);
   recording = true; playing = false; badge.hidden = true;
@@ -1372,11 +1571,7 @@ $('rec').addEventListener('click', async () => {
     if (failed) throw failed;
     if (!chunks.length) throw new Error('nenhum dado gravado');
     const blob = new Blob(chunks, { type: mime.split(';')[0] });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    downloadBlob(blob, name);
     status(`${tr('Vídeo salvo', 'Video saved')}: ${name} (${(blob.size / 1e6).toFixed(1)} MB)` +
       (transparentMp4 ? tr(' — MP4 não guarda transparência; o fundo sai preto.', ' — MP4 does not preserve transparency; the background will be black.') : ''), true);
   } catch (err) {
